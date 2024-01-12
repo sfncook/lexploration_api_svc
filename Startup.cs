@@ -29,8 +29,7 @@ namespace SalesBotApi
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "SalesChat.bot API", Version = "v1" });
             });
 
-//            services.AddDbContext<TodoContext>(options => options.UseInMemoryDatabase("TodoList"));
-//            services.AddDbContext<TodoContext>();
+            services.AddSingleton<CosmosDbService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -21,18 +21,10 @@ namespace SalesBotApi.Controllers
         private readonly Container conversationsContainer;
         private readonly Container companiesContainer;
 
-        public ConversationsController()
+        public ConversationsController(CosmosDbService cosmosDbService)
         {
-            CosmosClient client = new CosmosClient(
-                "https://keli-chatbot-02.documents.azure.com:443/",
-                "r5Mvqb5nf0G9uILKYTl0XTQHSMcxerm65qwm22ePQTIhQTxqnSPk8qosd2qaNjT0zx25XhK1i6jvACDbEcDLTg==",
-                new CosmosClientOptions()
-                {
-                    ApplicationRegion = Regions.EastUS2,
-                });
-            Database database = client.GetDatabase("keli");
-            conversationsContainer = database.GetContainer("conversations_sales");
-            companiesContainer = database.GetContainer("companies_sales");
+            conversationsContainer = cosmosDbService.ConversationsContainer;
+            companiesContainer = cosmosDbService.CompaniesContainer;
         }
 
         // GET: api/conversations
@@ -44,7 +36,6 @@ namespace SalesBotApi.Controllers
                 return BadRequest($"Invalid or missing parameter company_id");
             }
             string sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
-            Console.WriteLine(sqlQueryText);
             QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
 
             List<Conversation> conversations = new List<Conversation>();
