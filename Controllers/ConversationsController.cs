@@ -35,6 +35,31 @@ namespace SalesBotApi.Controllers
             companiesContainer = database.GetContainer("companies_sales");
         }
 
+        // GET: api/conversations
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Conversation>>> GetConversations([FromQuery] string company_id)
+        {
+            if (company_id == null)
+            {
+                return BadRequest($"Invalid or missing parameter company_id");
+            }
+            string sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
+            Console.WriteLine(sqlQueryText);
+            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+
+            List<Conversation> conversations = new List<Conversation>();
+            using (FeedIterator<Conversation> feedIterator = conversationsContainer.GetItemQueryIterator<Conversation>(queryDefinition))
+            {
+                while (feedIterator.HasMoreResults)
+                {
+                    FeedResponse<Conversation> response = await feedIterator.ReadNextAsync();
+                    conversations.AddRange(response.ToList());
+                }
+            }
+
+            return conversations;
+        }
+
         // POST: api/conversations
         [HttpPost]
         public async Task<IActionResult> CreateConversation([FromQuery] string company_id)
