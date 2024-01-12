@@ -27,13 +27,26 @@ namespace SalesBotApi.Controllers
 
         // GET: api/messages
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Message>>> GetConversations([FromQuery] string convo_id)
+        public async Task<ActionResult<IEnumerable<Message>>> GetMessages(
+            [FromQuery] string convo_id,
+            [FromQuery] bool? latest
+        )
         {
-            if (convo_id == null)
+            if (
+                (convo_id == null && latest == null) ||
+                (convo_id != null && latest != null)
+            )
             {
-                return BadRequest($"Invalid or missing parameter convo_id");
+                return BadRequest($"Invalid or missing parameters");
             }
-            string sqlQueryText = $"SELECT * FROM m WHERE m.conversation_id = '{convo_id}' ORDER BY m.timestamp ASC";
+
+            string sqlQueryText = "";
+            if (convo_id != null) {
+                sqlQueryText = $"SELECT * FROM m WHERE m.conversation_id = '{convo_id}' ORDER BY m.timestamp ASC";
+            }
+            if (latest != null) {
+                sqlQueryText = "SELECT  * FROM c WHERE c._ts >= (GetCurrentTimestamp() / 1000) - (30 * 24 * 60 * 60)";
+            }
             QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
 
             List<Message> messages = new List<Message>();
