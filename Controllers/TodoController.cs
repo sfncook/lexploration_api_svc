@@ -7,12 +7,12 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
-using TodoApi.Models;
+using SalesBotApi.Models;
 using Microsoft.Azure.Cosmos;
 using System;
 using Microsoft.Extensions.Configuration;
 
-namespace TodoApi.Controllers
+namespace SalesBotApi.Controllers
 {
     [Route("api/[controller]")] 
     [ApiController]
