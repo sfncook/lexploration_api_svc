@@ -31,15 +31,18 @@ namespace SalesBotApi.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Conversation>>> GetConversations(
             [FromQuery] string company_id,
-            [FromQuery] bool? latest
+            [FromQuery] bool? latest,
+            [FromQuery] bool? with_user_data
         )
         {
-            if (
-                (company_id == null && latest == null) ||
-                (company_id != null && latest != null)
-            )
+            int paramCount = 0;
+            if (company_id != null) paramCount++;
+            if (latest.HasValue) paramCount++;
+            if (with_user_data.HasValue) paramCount++;
+
+            if (paramCount != 1)
             {
-                return BadRequest($"Invalid or missing parameters");
+                return BadRequest("Please provide exactly one query parameter.");
             }
 
             string sqlQueryText = "";
@@ -48,6 +51,9 @@ namespace SalesBotApi.Controllers
             }
             if (latest != null) {
                 sqlQueryText = "SELECT  * FROM c WHERE c._ts >= (GetCurrentTimestamp() / 1000) - (30 * 24 * 60 * 60)";
+            }
+            if (with_user_data != null) {
+                sqlQueryText = "SELECT * FROM c WHERE IS_STRING(c.user_email) OR IS_STRING(c.user_phone_number) OR IS_STRING(c.user_first_name) OR IS_STRING(c.user_last_name)";
             }
 
             QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
