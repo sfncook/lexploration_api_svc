@@ -26,10 +26,11 @@ namespace SalesBotApi
             // Register the Swagger generator, defining 1 or more Swagger documents
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "SalesChat.bot API", Version = "v1" });
             });
 
-            services.AddDbContext<TodoContext>(options => options.UseInMemoryDatabase("TodoList"));
+//            services.AddDbContext<TodoContext>(options => options.UseInMemoryDatabase("TodoList"));
+//            services.AddDbContext<TodoContext>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -42,7 +43,7 @@ namespace SalesBotApi
             // specifying the Swagger JSON endpoint.
             app.UseSwaggerUI(c =>
             {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "SalesChat.bot API V1");
             });
 
             if (env.IsDevelopment())
