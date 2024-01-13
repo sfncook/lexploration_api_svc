@@ -57,6 +57,7 @@ namespace SalesBotApi.Controllers
             if (with_user_data != null) {
                 sqlQueryText = "SELECT * FROM c WHERE IS_STRING(c.user_email) OR IS_STRING(c.user_phone_number) OR IS_STRING(c.user_first_name) OR IS_STRING(c.user_last_name)";
             }
+            sqlQueryText += " ORDER BY c._ts DESC";
 
             QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
 
