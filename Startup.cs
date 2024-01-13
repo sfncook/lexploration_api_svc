@@ -30,6 +30,14 @@ namespace SalesBotApi
             });
 
             services.AddSingleton<CosmosDbService>();
+
+            services.AddCors(options =>
+                {
+                    options.AddPolicy("AllowSpecificOrigin",
+                        builder => builder.WithOrigins("*")
+                                          .AllowAnyHeader()
+                                          .AllowAnyMethod());
+                });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -55,6 +63,8 @@ namespace SalesBotApi
             app.UseDefaultFiles();
 
             app.UseStaticFiles();
+
+            app.UseCors("AllowSpecificOrigin");
 
             app.UseRouting();
 

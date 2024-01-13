@@ -59,6 +59,7 @@ namespace SalesBotApi.Controllers
                 }
             }
 
+            Response.Headers.Add("Access-Control-Allow-Origin", "*");
             return messages;
         }
     }
