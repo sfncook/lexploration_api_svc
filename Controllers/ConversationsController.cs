@@ -31,23 +31,25 @@ namespace SalesBotApi.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Conversation>>> GetConversations(
             [FromQuery] string company_id,
+            [FromQuery] int? since_timestamp,
             [FromQuery] bool? latest,
             [FromQuery] bool? with_user_data
         )
         {
-            int paramCount = 0;
-            if (company_id != null) paramCount++;
-            if (latest.HasValue) paramCount++;
-            if (with_user_data.HasValue) paramCount++;
-
-            if (paramCount != 1)
-            {
-                return BadRequest("Please provide exactly one query parameter.");
-            }
-
             string sqlQueryText = "";
             if (company_id != null) {
-                sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
+                if(company_id != "all") {
+                    sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
+                } else {
+                    sqlQueryText = $"SELECT * FROM c";
+                }
+            }
+            if (since_timestamp != null) {
+                bool containsWhere = sqlQueryText.IndexOf("WHERE", StringComparison.OrdinalIgnoreCase) >= 0;
+                if (containsWhere) sqlQueryText += " AND ";
+                else sqlQueryText += " WHERE ";
+                //(GetCurrentTimestamp() / 1000) - (30 * 24 * 60 * 60)
+                sqlQueryText += $"c._ts >= {since_timestamp}";
             }
             if (latest != null) {
                 sqlQueryText = "SELECT  * FROM c WHERE c._ts >= (GetCurrentTimestamp() / 1000) - (30 * 24 * 60 * 60)";
