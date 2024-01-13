@@ -62,5 +62,26 @@ namespace SalesBotApi.Controllers
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
             return messages;
         }
+
+        // GET: api/messages/count_per_convo
+        [HttpGet("count_per_convo")]
+        public async Task<ActionResult<IEnumerable<MessagesManyPerConvo>>> GetMessageCounts()
+        {
+            string sqlQueryText = "SELECT count(m) as many_msgs, m.conversation_id FROM m GROUP BY m.conversation_id";
+            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+
+            List<MessagesManyPerConvo> messages = new List<MessagesManyPerConvo>();
+            using (FeedIterator<MessagesManyPerConvo> feedIterator = messagesContainer.GetItemQueryIterator<MessagesManyPerConvo>(queryDefinition))
+            {
+                while (feedIterator.HasMoreResults)
+                {
+                    FeedResponse<MessagesManyPerConvo> response = await feedIterator.ReadNextAsync();
+                    messages.AddRange(response.ToList());
+                }
+            }
+
+            Response.Headers.Add("Access-Control-Allow-Origin", "*");
+            return messages;
+        }
     }
 }
