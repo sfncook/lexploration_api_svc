@@ -28,6 +28,8 @@ namespace SalesBotApi.Controllers
         private static readonly User[] Users = new[]
         {
             new User { Username = "sfncook@gmail.com", Password = "password", company_id="all"},
+            new User { Username = "nick@njpconsultingllc.com", Password = "password", company_id="all"},
+            new User { Username = "wowsers@gmail.com", Password = "password", company_id="all"},
             new User { Username = "dave@blacktiecasinoevents.com", Password = "password", company_id="blacktiecasinoevents" }
         };
 
