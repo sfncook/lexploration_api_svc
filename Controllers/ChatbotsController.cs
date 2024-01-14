@@ -56,5 +56,21 @@ namespace SalesBotApi.Controllers
             return chatbots;
         }
 
+        // PUT: api/chatbots
+        [HttpPut]
+        public async Task<IActionResult> PutTodoItem([FromBody] Chatbot chatbot)
+        {
+            Console.WriteLine(chatbot.id);
+            Console.WriteLine(chatbot.company_id);
+            try
+            {
+                await chatbotsContainer.ReplaceItemAsync(chatbot, chatbot.id);
+                return NoContent();
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return NotFound();
+            }
+        }
     }
 }
