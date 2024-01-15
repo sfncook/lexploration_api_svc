@@ -8,5 +8,6 @@ namespace SalesBotApi.Models
         public string conversation_id { get; set; }
         public string user_msg { get; set; }
         public string assistant_response { get; set; }
+        public string company_id { get; set; }
     }
 }

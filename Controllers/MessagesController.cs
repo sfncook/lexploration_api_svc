@@ -29,13 +29,11 @@ namespace SalesBotApi.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Message>>> GetMessages(
             [FromQuery] string convo_id,
+            [FromQuery] string company_id,
             [FromQuery] bool? latest
         )
         {
-            if (
-                (convo_id == null && latest == null) ||
-                (convo_id != null && latest != null)
-            )
+            if (convo_id != null && latest != null && company_id != null)
             {
                 return BadRequest($"Invalid or missing parameters");
             }
@@ -45,7 +43,10 @@ namespace SalesBotApi.Controllers
                 sqlQueryText = $"SELECT * FROM m WHERE m.conversation_id = '{convo_id}' ORDER BY m.timestamp ASC";
             }
             if (latest != null) {
-                sqlQueryText = "SELECT  * FROM c WHERE c._ts >= (GetCurrentTimestamp() / 1000) - (30 * 24 * 60 * 60)";
+                sqlQueryText = "SELECT  * FROM c WHERE c._ts >= (GetCurrentTimestamp() / 1000) - (30 * 24 * 60 * 60) AND is_string(c.company_id)";
+                if (company_id != "all") {
+                    sqlQueryText += $" AND c.company_id = '{company_id}'";
+                }
             }
             QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
 
@@ -65,9 +66,17 @@ namespace SalesBotApi.Controllers
 
         // GET: api/messages/count_per_convo
         [HttpGet("count_per_convo")]
-        public async Task<ActionResult<IEnumerable<MessagesManyPerConvo>>> GetMessageCounts()
+        public async Task<ActionResult<IEnumerable<MessagesManyPerConvo>>> GetMessageCounts([FromQuery] string company_id)
         {
-            string sqlQueryText = "SELECT count(m) as many_msgs, m.conversation_id FROM m GROUP BY m.conversation_id";
+            if (company_id != null)
+            {
+                return BadRequest($"Invalid or missing parameters");
+            }
+
+            string sqlQueryText = $"SELECT count(m) as many_msgs, m.conversation_id FROM m GROUP BY m.conversation_id";
+            if(company_id != "all") {
+                sqlQueryText += $"AND m.company_id = '{company_id}'";
+            }
             QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
 
             List<MessagesManyPerConvo> messages = new List<MessagesManyPerConvo>();
