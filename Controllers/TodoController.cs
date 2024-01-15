@@ -11,6 +11,8 @@ using SalesBotApi.Models;
 using Microsoft.Azure.Cosmos;
 using System;
 using Microsoft.Extensions.Configuration;
+using System.Net;
+using System.Net.Mail;
 
 namespace SalesBotApi.Controllers
 {
@@ -32,6 +34,39 @@ namespace SalesBotApi.Controllers
 //                _context.SaveChanges();
 //            }
 //        }
+
+        // PUT: api/Todo/email
+        [HttpPut("email")]
+        public async Task<IActionResult> PutTodoItem()
+        {
+            Console.WriteLine("Sending an email now");
+
+            var fromAddress = new MailAddress("james@saleschat.bot", "Sales Chatbot");
+            const string fromPassword = "n$6d2%{e|@71";
+            var toAddress = new MailAddress("sfncook@gmail.com");
+
+            var smtp = new SmtpClient
+            {
+                Host = "mail.saleschat.bot",
+                Port = 465,
+                EnableSsl = true,
+                DeliveryMethod = SmtpDeliveryMethod.Network,
+                UseDefaultCredentials = false,
+                Credentials = new NetworkCredential("james@saleschat.bot",  "n$6d2%{e|@71")
+            };
+
+            using (var message = new MailMessage(fromAddress, toAddress)
+            {
+                Subject = "Hello world!",
+                Body = "Hi, this is a message from an App Server."
+            })
+            {
+                smtp.Send(message);
+            }
+
+            Console.WriteLine("Done");
+            return NoContent();
+        }
 
         // GET: api/Todo
         [HttpGet]
