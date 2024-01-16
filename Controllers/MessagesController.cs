@@ -68,15 +68,17 @@ namespace SalesBotApi.Controllers
         [HttpGet("count_per_convo")]
         public async Task<ActionResult<IEnumerable<MessagesManyPerConvo>>> GetMessageCounts([FromQuery] string company_id)
         {
-            if (company_id != null)
+            if (company_id == null)
             {
                 return BadRequest($"Invalid or missing parameters");
             }
 
-            string sqlQueryText = $"SELECT count(m) as many_msgs, m.conversation_id FROM m GROUP BY m.conversation_id";
+            string sqlQueryText = $"SELECT count(m) as many_msgs, m.conversation_id FROM m";
             if(company_id != "all") {
-                sqlQueryText += $"AND m.company_id = '{company_id}'";
+                sqlQueryText += $" WHERE m.company_id = '{company_id}'";
             }
+            sqlQueryText += " GROUP BY m.conversation_id";
+            
             QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
 
             List<MessagesManyPerConvo> messages = new List<MessagesManyPerConvo>();
