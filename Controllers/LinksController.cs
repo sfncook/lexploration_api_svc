@@ -87,6 +87,7 @@ namespace SalesBotApi.Controllers
         {
             try
             {
+                Response.Headers.Add("Access-Control-Allow-Origin", "*");
                 await linksContainer.ReplaceItemAsync(link, link.id);
                 return NoContent();
             }
@@ -94,6 +95,34 @@ namespace SalesBotApi.Controllers
             {
                 return NotFound();
             }
+        }
+
+        // POST: api/links
+        [HttpPost]
+        public async Task<ActionResult<Link>> AddLink([FromQuery] string company_id, [FromBody] AddLinkRequest addLinkRequest)
+        {
+            if (company_id == null)
+            {
+                return BadRequest("Missing company_id query parameter");
+            }
+            if (addLinkRequest == null)
+            {
+                return BadRequest("Missing link text in body");
+            }
+
+            string _id = Guid.NewGuid().ToString();
+            Link link = new Link()
+            {
+                 id = _id,
+                 link = addLinkRequest.link,
+                 company_id = company_id,
+                 status = "",
+                 result = "",
+            };
+
+            Response.Headers.Add("Access-Control-Allow-Origin", "*");
+            await linksContainer.CreateItemAsync<Link>(link, new PartitionKey(link.company_id));
+            return link;
         }
     }
 }
