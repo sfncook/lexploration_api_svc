@@ -56,5 +56,20 @@ namespace SalesBotApi.Controllers
             return companies;
         }
 
+//        // POST: api/companies
+//        [HttpPost]
+//        public async Task<IActionResult> CreateNewCompany([FromBody] NewCompanyRequest newCompanyReq)
+//        {
+//            try
+//            {
+//                await companiesContainer.ReplaceItemAsync(chatbot, chatbot.id);
+//                return NoContent();
+//            }
+//            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+//            {
+//                return NotFound();
+//            }
+//        }
+
     }
 }

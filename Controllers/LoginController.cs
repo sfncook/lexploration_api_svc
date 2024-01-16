@@ -25,39 +25,37 @@ namespace SalesBotApi.Controllers
     [ApiController]
     public class LoginController : Controller
     {
-        private static readonly User[] Users = new[]
-        {
-            new User { Username = "a1@b.com", Password = "abc"},
-            new User { Username = "sfncook@gmail.com", Password = "password", company_id="all"},
-            new User { Username = "nick@njpconsultingllc.com", Password = "password", company_id="all"},
-            new User { Username = "wowsers@gmail.com", Password = "password", company_id="all"},
-            new User { Username = "dave@blacktiecasinoevents.com", Password = "password", company_id="blacktiecasinoevents" }
-        };
 
+        private readonly Container usersContainer;
+
+        public LoginController(CosmosDbService cosmosDbService)
+        {
+            usersContainer = cosmosDbService.UsersContainer;
+        }
 
         // POST: api/login
         [HttpPost]
-        public ActionResult<AuthorizedUser> LoginUser([FromBody] LoginRequest loginReq)
+        public async Task<ActionResult<AuthorizedUser>> LoginUser([FromBody] LoginRequest loginReq)
         {
+            string sqlQueryText = $"SELECT * FROM c WHERE c.user_name = '{loginReq.user_name}' AND c.password = '{loginReq.password}' OFFSET 0 LIMIT 1";
+
+            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+
+            AuthorizedUser authorizedUser = null;
+            using (FeedIterator<AuthorizedUser> feedIterator = usersContainer.GetItemQueryIterator<AuthorizedUser>(queryDefinition))
+            {
+                while (feedIterator.HasMoreResults)
+                {
+                    FeedResponse<AuthorizedUser> response = await feedIterator.ReadNextAsync();
+                    authorizedUser = response.First();
+                    break;
+                }
+            }
+
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
 
-            // Check if the username and password match any user in the array
-            var user = Users.FirstOrDefault(u => u.Username == loginReq.user_name && u.Password == loginReq.password);
-
-            if (user != null)
-            {
-                // User found - create and return an AuthorizedUser object
-                var authorizedUser = new AuthorizedUser {
-                    user_name = user.Username,
-                    company_id = user.company_id
-                };
-                return Ok(authorizedUser);
-            }
-            else
-            {
-                // User not found or password does not match
-                return Unauthorized();
-            }
+            if(authorizedUser != null) return Ok(authorizedUser);
+            else return Unauthorized();
         }
     }
 }

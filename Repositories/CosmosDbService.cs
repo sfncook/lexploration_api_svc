@@ -18,6 +18,7 @@ public class CosmosDbService
     public Container ConversationsContainer { get; }
     public Container CompaniesContainer { get; }
     public Container ChatbotsContainer { get; }
+    public Container UsersContainer { get; }
 
     public CosmosDbService(IConfiguration configuration)
     {
@@ -34,5 +35,6 @@ public class CosmosDbService
         ConversationsContainer = database.GetContainer("conversations_sales");
         CompaniesContainer = database.GetContainer("companies_sales");
         ChatbotsContainer = database.GetContainer("chatbots_sales");
+        UsersContainer = database.GetContainer("users_sales");
     }
 }
