@@ -78,7 +78,7 @@ namespace SalesBotApi.Controllers
                 sqlQueryText += $" WHERE m.company_id = '{company_id}'";
             }
             sqlQueryText += " GROUP BY m.conversation_id";
-            
+
             QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
 
             List<MessagesManyPerConvo> messages = new List<MessagesManyPerConvo>();

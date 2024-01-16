@@ -21,11 +21,13 @@ namespace SalesBotApi.Controllers
     {
         private readonly Container companiesContainer;
         private readonly Container usersContainer;
+        private readonly Container chatbotsContainer;
 
         public CompaniesController(CosmosDbService cosmosDbService)
         {
             companiesContainer = cosmosDbService.CompaniesContainer;
             usersContainer = cosmosDbService.UsersContainer;
+            chatbotsContainer = cosmosDbService.ChatbotsContainer;
         }
 
         // GET: api/companies
@@ -81,6 +83,7 @@ namespace SalesBotApi.Controllers
             await usersContainer.CreateItemAsync(user, new PartitionKey(user.company_id));
             await usersContainer.DeleteItemAsync<FullUser>(user.id, new PartitionKey(oldPartitionKeyValue));
             await usersContainer.ReplaceItemAsync(user, user.id, new PartitionKey(user.company_id));
+
             Company newCompany = new Company
             {
                 id = newUuid,
@@ -91,10 +94,22 @@ namespace SalesBotApi.Controllers
 
             await companiesContainer.CreateItemAsync(newCompany, new PartitionKey(companyId));
 
+            Chatbot newChatbot = new Chatbot
+            {
+                id = Guid.NewGuid().ToString(),
+                company_id = companyId,
+                show_avatar = true,
+                llm_model = "keli-35-turbo",
+                contact_prompt = "Try to get the user to tell you their name, email, and phone number",
+                contact_link = "",
+                contact_method = "contact_form",
+                greeting = $"Hi! I'm Keli! I can answer your questions about {newCompany.name}.",
+            };
+            await chatbotsContainer.CreateItemAsync(newChatbot, new PartitionKey(companyId));
+
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
             return Ok(newCompany);
         }
-
 
         private async Task<FullUser> GetUserById(string user_id) {
             string sqlQueryText = $"SELECT * FROM c WHERE c.id = '{user_id}' OFFSET 0 LIMIT 1";
