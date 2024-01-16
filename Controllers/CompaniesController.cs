@@ -111,6 +111,23 @@ namespace SalesBotApi.Controllers
             return Ok(newCompany);
         }
 
+        // PUT: api/companies
+        [HttpPut]
+        public async Task<IActionResult> UpdateCompany([FromBody] Company company)
+        {
+            Console.WriteLine(company.id);
+            Console.WriteLine(company.company_id);
+            try
+            {
+                await companiesContainer.ReplaceItemAsync(company, company.id);
+                return NoContent();
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return NotFound();
+            }
+        }
+
         private async Task<FullUser> GetUserById(string user_id) {
             string sqlQueryText = $"SELECT * FROM c WHERE c.id = '{user_id}' OFFSET 0 LIMIT 1";
 
