@@ -42,14 +42,21 @@ namespace SalesBotApi.Controllers
             QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
 
             AuthorizedUser authorizedUser = null;
-            using (FeedIterator<AuthorizedUser> feedIterator = usersContainer.GetItemQueryIterator<AuthorizedUser>(queryDefinition))
+            try
             {
-                while (feedIterator.HasMoreResults)
+                using (FeedIterator<AuthorizedUser> feedIterator = usersContainer.GetItemQueryIterator<AuthorizedUser>(queryDefinition))
                 {
-                    FeedResponse<AuthorizedUser> response = await feedIterator.ReadNextAsync();
-                    authorizedUser = response.First();
-                    break;
+                    while (feedIterator.HasMoreResults)
+                    {
+                        FeedResponse<AuthorizedUser> response = await feedIterator.ReadNextAsync();
+                        authorizedUser = response.First();
+                        break;
+                    }
                 }
+            }
+            catch (CosmosException ex)
+            {
+                return Unauthorized();
             }
 
             Response.Headers.Add("Access-Control-Allow-Origin", "*");

@@ -11,6 +11,7 @@ using SalesBotApi.Models;
 using Microsoft.Azure.Cosmos;
 using System;
 using Microsoft.Extensions.Configuration;
+using System.Text.RegularExpressions;
 
 namespace SalesBotApi.Controllers
 {
@@ -19,10 +20,12 @@ namespace SalesBotApi.Controllers
     public class CompaniesController : Controller
     {
         private readonly Container companiesContainer;
+        private readonly Container usersContainer;
 
         public CompaniesController(CosmosDbService cosmosDbService)
         {
             companiesContainer = cosmosDbService.CompaniesContainer;
+            usersContainer = cosmosDbService.UsersContainer;
         }
 
         // GET: api/companies
@@ -56,20 +59,60 @@ namespace SalesBotApi.Controllers
             return companies;
         }
 
-//        // POST: api/companies
-//        [HttpPost]
-//        public async Task<IActionResult> CreateNewCompany([FromBody] NewCompanyRequest newCompanyReq)
-//        {
-//            try
-//            {
-//                await companiesContainer.ReplaceItemAsync(chatbot, chatbot.id);
-//                return NoContent();
-//            }
-//            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-//            {
-//                return NotFound();
-//            }
-//        }
+        // POST: api/companies
+        [HttpPost]
+        public async Task<ActionResult<Company>> CreateNewCompany([FromBody] NewCompanyRequest newCompanyReq)
+        {
+            if (newCompanyReq.user_id == null || newCompanyReq.name == null || newCompanyReq.description == null)
+            {
+                return BadRequest("Invalid request, missing parameters");
+            }
+
+            FullUser user = await GetUserById(newCompanyReq.user_id);
+            string oldPartitionKeyValue = user.company_id;
+            if (user == null)
+            {
+                return BadRequest("User not found.");
+            }
+
+            string newUuid = Guid.NewGuid().ToString();
+            string companyId = Regex.Replace(newCompanyReq.name.ToLower(), @"[^a-z0-9]", "");
+            user.company_id = companyId;
+            await usersContainer.CreateItemAsync(user, new PartitionKey(user.company_id));
+            await usersContainer.DeleteItemAsync<FullUser>(user.id, new PartitionKey(oldPartitionKeyValue));
+            await usersContainer.ReplaceItemAsync(user, user.id, new PartitionKey(user.company_id));
+            Company newCompany = new Company
+            {
+                id = newUuid,
+                company_id = companyId,
+                name = newCompanyReq.name,
+                description = newCompanyReq.description,
+            };
+
+            await companiesContainer.CreateItemAsync(newCompany, new PartitionKey(companyId));
+
+            Response.Headers.Add("Access-Control-Allow-Origin", "*");
+            return Ok(newCompany);
+        }
+
+
+        private async Task<FullUser> GetUserById(string user_id) {
+            string sqlQueryText = $"SELECT * FROM c WHERE c.id = '{user_id}' OFFSET 0 LIMIT 1";
+
+            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+
+            FullUser user = null;
+            using (FeedIterator<FullUser> feedIterator = usersContainer.GetItemQueryIterator<FullUser>(queryDefinition))
+            {
+                while (feedIterator.HasMoreResults)
+                {
+                    FeedResponse<FullUser> response = await feedIterator.ReadNextAsync();
+                    user = response.First();
+                    break;
+                }
+            }
+            return user;
+        }
 
     }
 }
