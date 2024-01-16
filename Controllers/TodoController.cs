@@ -52,7 +52,7 @@ namespace SalesBotApi.Controllers
                 EnableSsl = true,
                 DeliveryMethod = SmtpDeliveryMethod.Network,
                 UseDefaultCredentials = false,
-                Credentials = new NetworkCredential("james@saleschat.bot",  "n$6d2%{e|@71")
+                Credentials = new NetworkCredential("hello@saleschat.bot",  "n$6d2%{e|@71")
             };
 
             using (var message = new MailMessage(fromAddress, toAddress)
