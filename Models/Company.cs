@@ -9,5 +9,6 @@ namespace SalesBotApi.Models
         public string start_url { get; set; }
         public string name { get; set; }
         public string description { get; set; }
+        public bool training { get; set; }
     }
 }

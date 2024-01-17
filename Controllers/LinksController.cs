@@ -101,30 +101,6 @@ namespace SalesBotApi.Controllers
                 return BadRequest("Missing link text in body");
             }
 
-            string _id = Guid.NewGuid().ToString();
-            Link link = new Link()
-            {
-                 id = _id,
-                 link = addLinkRequest.link,
-                 company_id = company_id,
-                 status = "",
-                 result = "",
-            };
-
-            Response.Headers.Add("Access-Control-Allow-Origin", "*");
-            await linksContainer.CreateItemAsync<Link>(link, new PartitionKey(link.company_id));
-            return link;
-//            string _id = Guid.NewGuid().ToString();
-//            Link link = new Link()
-//            {
-//                 id = _id,
-//                 link = addLinkRequest.link,
-//                 company_id = company_id,
-//                 status = "",
-//                 result = "",
-//            };
-//            await linksContainer.CreateItemAsync<Link>(link, new PartitionKey(link.company_id));
-
             // Make POST request to the downstream service
             HttpClient client = _clientFactory.CreateClient();
             string postUrl = $"http://localhost:7071/api/acquire_links?companyid={company_id}&url={Uri.EscapeDataString(addLinkRequest.link)}";
