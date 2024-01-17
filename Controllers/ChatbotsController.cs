@@ -64,6 +64,7 @@ namespace SalesBotApi.Controllers
             Console.WriteLine(chatbot.company_id);
             try
             {
+                chatbot.initialized = true;
                 await chatbotsContainer.ReplaceItemAsync(chatbot, chatbot.id);
                 return NoContent();
             }

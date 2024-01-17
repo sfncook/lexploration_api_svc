@@ -11,5 +11,6 @@ namespace SalesBotApi.Models
         public string contact_link { get; set; }
         public string contact_method { get; set; }
         public string greeting { get; set; }
+        public bool initialized { get; set; }
     }
 }

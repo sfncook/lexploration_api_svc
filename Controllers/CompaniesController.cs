@@ -85,9 +85,6 @@ namespace SalesBotApi.Controllers
             string companyId = Regex.Replace(newCompanyReq.name.ToLower(), @"[^a-z0-9]", "");
 
             Company company = await GetCompanyById(companyId);
-            Console.WriteLine("company...");
-            Console.WriteLine(company);
-            Console.WriteLine("...company");
             if(company != null)
             {
                 return Conflict("Company already exists");
@@ -118,6 +115,7 @@ namespace SalesBotApi.Controllers
                 contact_link = "",
                 contact_method = "contact_form",
                 greeting = $"Hi! I'm Keli! I can answer your questions about {newCompany.name}.",
+                initialized = false,
             };
             await chatbotsContainer.CreateItemAsync(newChatbot, new PartitionKey(companyId));
 
