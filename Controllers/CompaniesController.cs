@@ -72,6 +72,10 @@ namespace SalesBotApi.Controllers
 
             FullUser user = await GetUserById(newCompanyReq.user_id);
             string oldPartitionKeyValue = user.company_id;
+            if(oldPartitionKeyValue == null || oldPartitionKeyValue == "") {
+                Console.WriteLine($"oldPartitionKeyValue is empty or null:{oldPartitionKeyValue} - This means this request will probably fail.  You need to prime new accounts with 'company_id' == 'XXX'");
+                return BadRequest("Invalid request, check the logs");
+            }
             if (user == null)
             {
                 return BadRequest("User not found.");
@@ -79,6 +83,16 @@ namespace SalesBotApi.Controllers
 
             string newUuid = Guid.NewGuid().ToString();
             string companyId = Regex.Replace(newCompanyReq.name.ToLower(), @"[^a-z0-9]", "");
+
+            Company company = await GetCompanyById(companyId);
+            Console.WriteLine("company...");
+            Console.WriteLine(company);
+            Console.WriteLine("...company");
+            if(company != null)
+            {
+                return Conflict("Company already exists");
+            }
+
             user.company_id = companyId;
             await usersContainer.CreateItemAsync(user, new PartitionKey(user.company_id));
             await usersContainer.DeleteItemAsync<FullUser>(user.id, new PartitionKey(oldPartitionKeyValue));
@@ -144,6 +158,27 @@ namespace SalesBotApi.Controllers
                 }
             }
             return user;
+        }
+
+        private async Task<Company> GetCompanyById(string company_id)
+        {
+            string sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
+            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+
+            FeedIterator<Company> feedIterator = companiesContainer.GetItemQueryIterator<Company>(queryDefinition);
+
+            Company company = null;
+            while (feedIterator.HasMoreResults)
+            {
+                FeedResponse<Company> response = await feedIterator.ReadNextAsync();
+                if (response.Count > 0)
+                {
+                    company = response.First();
+                    break;
+                }
+            }
+
+            return company;
         }
 
     }
