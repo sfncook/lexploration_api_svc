@@ -22,12 +22,14 @@ namespace SalesBotApi.Controllers
         private readonly Container linksContainer;
         private readonly IHttpClientFactory _clientFactory;
         private readonly Container companiesContainer;
+        private readonly QueueService queueService;
 
-        public LinksController(CosmosDbService cosmosDbService, IHttpClientFactory clientFactory)
+        public LinksController(CosmosDbService cosmosDbService, IHttpClientFactory clientFactory, QueueService _queueService)
         {
             linksContainer = cosmosDbService.LinksContainer;
             _clientFactory = clientFactory;
             companiesContainer = cosmosDbService.CompaniesContainer;
+            queueService = _queueService;
         }
 
         // GET: api/links
@@ -148,6 +150,7 @@ namespace SalesBotApi.Controllers
 
             //TODO
             await SetCompanyTraining(company_id);
+            IEnumerable<Link> links = await GetAllLinksForCompany(company_id);
 
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
             return NoContent();
