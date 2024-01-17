@@ -1,6 +1,7 @@
 using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
 using System;
+using System.Text;
 using System.Threading.Tasks;
 
 public class QueueService
@@ -18,10 +19,12 @@ public class QueueService
 
     public async Task EnqueueMessageAsync(string message)
     {
+        Console.WriteLine(message);
         if (string.IsNullOrEmpty(message))
             throw new ArgumentNullException(nameof(message));
 
-        await queueClient.SendMessageAsync(message);
+        var bytes = Encoding.UTF8.GetBytes(message);
+        await queueClient.SendMessageAsync(Convert.ToBase64String(bytes));
     }
 }
 

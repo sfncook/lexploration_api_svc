@@ -148,12 +148,31 @@ namespace SalesBotApi.Controllers
                 return BadRequest("Missing company_id query parameter");
             }
 
-            //TODO
             await SetCompanyTraining(company_id);
-            IEnumerable<Link> links = await GetAllLinksForCompany(company_id);
+            IEnumerable<Link> allLinks = await GetAllLinksForCompany(company_id);
+            var filteredLinks = allLinks.Where(link => string.IsNullOrWhiteSpace(link.status));
+            int batchSize = 10;
+            var linkBatches = BatchLinks(filteredLinks, batchSize);
+            foreach (var batch in linkBatches)
+            {
+                var tasks = batch.Select(link =>
+                    queueService.EnqueueMessageAsync(JsonConvert.SerializeObject(link)))
+                    .ToList();
+                await Task.WhenAll(tasks);
+            }
 
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
             return NoContent();
+        }
+
+        private IEnumerable<IEnumerable<Link>> BatchLinks(IEnumerable<Link> links, int batchSize)
+        {
+            int total = 0;
+            while (total < links.Count())
+            {
+                yield return links.Skip(total).Take(batchSize);
+                total += batchSize;
+            }
         }
 
         private async Task<ItemResponse<dynamic>> SetCompanyTraining(string company_id) {
