@@ -131,6 +131,7 @@ namespace SalesBotApi.Controllers
             Console.WriteLine(company.company_id);
             try
             {
+                Response.Headers.Add("Access-Control-Allow-Origin", "*");
                 await companiesContainer.ReplaceItemAsync(company, company.id);
                 return NoContent();
             }
