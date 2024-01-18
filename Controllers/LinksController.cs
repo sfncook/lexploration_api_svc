@@ -115,6 +115,30 @@ namespace SalesBotApi.Controllers
             return NoContent();
         }
 
+        // DELETE: api/links/cleanup
+        [HttpDelete("cleanup")]
+        public async Task<IActionResult> CleanUpOldlinks()
+        {
+            IEnumerable<Company> incompanies = await GetAllCompanies();
+            HashSet<string> companyIds = new HashSet<string>();
+            foreach (Company company in incompanies)
+            {
+                companyIds.Add(company.company_id);
+            }
+
+            IEnumerable<Link> inlinks = await GetAllLinks();
+            foreach (var link in inlinks)
+            {
+                if (!companyIds.Contains(link.company_id.ToString()))
+                {
+                    Console.WriteLine($"Deleting link with ID: {link.id}, Company ID: {link.company_id}");
+                    await linksContainer.DeleteItemAsync<Link>(link.id, new PartitionKey(link.company_id));
+                }
+            }
+
+            return new OkResult();
+        }
+
         // POST: api/links/scrape
         [HttpPost("scrape")]
         public async Task<IActionResult> AddLink([FromQuery] string company_id)
@@ -189,6 +213,38 @@ namespace SalesBotApi.Controllers
 
             QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
 
+            List<Link> links = new List<Link>();
+            using (FeedIterator<Link> feedIterator = linksContainer.GetItemQueryIterator<Link>(queryDefinition))
+            {
+                while (feedIterator.HasMoreResults)
+                {
+                    FeedResponse<Link> response = await feedIterator.ReadNextAsync();
+                    links.AddRange(response.ToList());
+                }
+            }
+            return links;
+        }
+
+        private async Task<IEnumerable<Company>> GetAllCompanies()
+        {
+            string sqlQueryText = $"SELECT * FROM c";
+            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+            List<Company> companies = new List<Company>();
+            using (FeedIterator<Company> feedIterator = companiesContainer.GetItemQueryIterator<Company>(queryDefinition))
+            {
+                while (feedIterator.HasMoreResults)
+                {
+                    FeedResponse<Company> response = await feedIterator.ReadNextAsync();
+                    companies.AddRange(response.ToList());
+                }
+            }
+            return companies;
+        }
+
+        private async Task<IEnumerable<Link>> GetAllLinks()
+        {
+            string sqlQueryText = $"SELECT * FROM c";
+            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
             List<Link> links = new List<Link>();
             using (FeedIterator<Link> feedIterator = linksContainer.GetItemQueryIterator<Link>(queryDefinition))
             {
