@@ -11,8 +11,7 @@ using SalesBotApi.Models;
 using Microsoft.Azure.Cosmos;
 using System;
 using Microsoft.Extensions.Configuration;
-using System.Net;
-using System.Net.Mail;
+using System.Text;
 
 namespace SalesBotApi.Controllers
 {
@@ -20,35 +19,32 @@ namespace SalesBotApi.Controllers
     [ApiController]
     public class TodoController : Controller
     {
+        private readonly IHttpClientFactory _clientFactory;
 
-        // PUT: api/Todo/email
-        [HttpPut("email")]
+        public TodoController(IHttpClientFactory clientFactory)
+        {
+            _clientFactory = clientFactory;
+        }
+
+        // PUT: api/todo/email
+        [HttpPost("email")]
         public async Task<IActionResult> PutTodoItem()
         {
             Console.WriteLine("Sending an email now");
 
-            var fromAddress = new MailAddress("james@saleschat.bot", "Sales Chatbot");
-            const string fromPassword = "n$6d2%{e|@71";
-            var toAddress = new MailAddress("sfncook@gmail.com");
 
-            var smtp = new SmtpClient
+            EmailRequest emailReq = new EmailRequest
             {
-                Host = "mail.saleschat.bot",
-                Port = 465,
-                EnableSsl = true,
-                DeliveryMethod = SmtpDeliveryMethod.Network,
-                UseDefaultCredentials = false,
-                Credentials = new NetworkCredential("hello@saleschat.bot",  "n$6d2%{e|@71")
+                recipient_email = "sfncook@gmail.com",
+                subject = "Test Email2",
+                body = "This is another test email sent from C# script."
             };
 
-            using (var message = new MailMessage(fromAddress, toAddress)
-            {
-                Subject = "Hello world!",
-                Body = "Hi, this is a message from an App Server."
-            })
-            {
-                smtp.Send(message);
-            }
+            HttpClient client = _clientFactory.CreateClient();
+            string postUrl = "https://salesbot-001.azurewebsites.net/api/email";
+//            string postUrl = "http://localhost:7071/api/email";
+            string body = JsonConvert.SerializeObject(emailReq);
+            var postResponse = await client.PostAsync(postUrl, new StringContent(body, Encoding.UTF8, "application/json"));
 
             Console.WriteLine("Done");
             return NoContent();
