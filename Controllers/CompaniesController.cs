@@ -127,12 +127,17 @@ namespace SalesBotApi.Controllers
         [HttpPut]
         public async Task<IActionResult> UpdateCompany([FromBody] Company company)
         {
-            Console.WriteLine(company.id);
-            Console.WriteLine(company.company_id);
             try
             {
+                List<PatchOperation> patchOperations = new List<PatchOperation>()
+                {
+                    PatchOperation.Replace("/name", company.name),
+                    PatchOperation.Replace("/description", company.description)
+                };
+                await companiesContainer.PatchItemAsync<dynamic>(company.id, new PartitionKey(company.company_id), patchOperations);
+//                await companiesContainer.ReplaceItemAsync(company, company.id);
+
                 Response.Headers.Add("Access-Control-Allow-Origin", "*");
-                await companiesContainer.ReplaceItemAsync(company, company.id);
                 return NoContent();
             }
             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
