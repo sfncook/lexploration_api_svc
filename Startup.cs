@@ -31,6 +31,8 @@ namespace SalesBotApi
 
             services.AddSingleton<CosmosDbService>();
 
+            services.AddSingleton<EmailService>();
+
             services.AddSingleton<QueueService>();
 
             services.AddCors(options =>
