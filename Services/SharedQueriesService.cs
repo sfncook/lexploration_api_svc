@@ -15,15 +15,38 @@ using Microsoft.Extensions.Configuration;
 
 public class SharedQueriesService
 {
-    private readonly Container linksContainer;
+    private readonly Container conversationsContainer;
     private readonly Container companiesContainer;
     private readonly Container chatbotsContainer;
+    private readonly Container linksContainer;
+    private readonly Container messagesContainer;
+    private readonly Container usersContainer;
 
     public SharedQueriesService(CosmosDbService cosmosDbService)
     {
-        linksContainer = cosmosDbService.LinksContainer;
+        conversationsContainer = cosmosDbService.ConversationsContainer;
         companiesContainer = cosmosDbService.CompaniesContainer;
         chatbotsContainer = cosmosDbService.ChatbotsContainer;
+        linksContainer = cosmosDbService.LinksContainer;
+        messagesContainer = cosmosDbService.MessagesContainer;
+        usersContainer = cosmosDbService.UsersContainer;
+    }
+
+    public async Task<IEnumerable<T>> GetAllItems<T>(Container container)
+    {
+        string sqlQueryText = "SELECT * FROM c";
+        QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+        List<T> items = new List<T>();
+
+        using (FeedIterator<T> feedIterator = container.GetItemQueryIterator<T>(queryDefinition))
+        {
+            while (feedIterator.HasMoreResults)
+            {
+                FeedResponse<T> response = await feedIterator.ReadNextAsync();
+                items.AddRange(response.ToList());
+            }
+        }
+        return items;
     }
 
     public async Task<IEnumerable<Company>> GetAllCompanies()
@@ -63,7 +86,7 @@ public class SharedQueriesService
         string sqlQueryText = $"SELECT * FROM c";
         QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
         List<Chatbot> chatbots = new List<Chatbot>();
-        using (FeedIterator<Chatbot> feedIterator = linksContainer.GetItemQueryIterator<Chatbot>(queryDefinition))
+        using (FeedIterator<Chatbot> feedIterator = chatbotsContainer.GetItemQueryIterator<Chatbot>(queryDefinition))
         {
             while (feedIterator.HasMoreResults)
             {
