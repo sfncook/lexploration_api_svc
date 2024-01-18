@@ -103,7 +103,7 @@ namespace SalesBotApi.Controllers
 
             // Make POST request to the downstream service
             HttpClient client = _clientFactory.CreateClient();
-            string postUrl = $"http://localhost:7071/api/acquire_links?companyid={company_id}&url={Uri.EscapeDataString(addLinkRequest.link)}";
+            string postUrl = $"https://salesbot-001.azurewebsites.net/api/acquire_links?companyid={company_id}&url={Uri.EscapeDataString(addLinkRequest.link)}";
             var postResponse = await client.PostAsync(postUrl, new StringContent("", Encoding.UTF8, "application/json"));
 
             if (!postResponse.IsSuccessStatusCode)
