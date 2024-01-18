@@ -41,13 +41,32 @@ namespace SalesBotApi.Controllers
         [HttpDelete]
         public async Task<IActionResult> PerformCleanup()
         {
-            bool do_delete = false;
+            bool do_delete = true;
             IEnumerable<Conversation> conversations = await queriesSvc.GetAllItems<Conversation>(conversationsContainer);
             IEnumerable<Company> companies = await queriesSvc.GetAllItems<Company>(companiesContainer);
             IEnumerable<Chatbot> chatbots = await queriesSvc.GetAllItems<Chatbot>(chatbotsContainer);
             IEnumerable<Link> links = await queriesSvc.GetAllItems<Link>(linksContainer);
             IEnumerable<Message> messages = await queriesSvc.GetAllItems<Message>(messagesContainer);
             IEnumerable<AuthorizedUser> users = await queriesSvc.GetAllItems<AuthorizedUser>(usersContainer);
+
+            HashSet<string> companyIdsWithUsers = new HashSet<string>();
+            foreach (AuthorizedUser user in users)
+            {
+                companyIdsWithUsers.Add(user.company_id);
+            }
+            foreach (var company in companies)
+            {
+                if (!companyIdsWithUsers.Contains(company.company_id.ToString()) && company.company_id.ToString()!="XXX")
+                {
+                    Console.WriteLine($"Deleting company with ID: {company.id}, Company ID: {company.company_id}");
+                    if(do_delete) {
+                        Console.WriteLine($"Deleting from Cosmos");
+                        await companiesContainer.DeleteItemAsync<Company>(company.id, new PartitionKey(company.company_id));
+                    }
+                }
+            }
+            
+            companies = await queriesSvc.GetAllItems<Company>(companiesContainer);
 
             HashSet<string> companyIds = new HashSet<string>();
             foreach (Company company in companies)
