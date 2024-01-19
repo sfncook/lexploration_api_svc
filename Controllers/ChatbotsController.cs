@@ -75,29 +75,5 @@ namespace SalesBotApi.Controllers
                 return NotFound();
             }
         }
-
-        // DELETE: api/chatbots/cleanup
-        [HttpDelete("cleanup")]
-        public async Task<IActionResult> CleanUpOldChatbots()
-        {
-            IEnumerable<Company> incompanies = await queriesSvc.GetAllCompanies();
-            HashSet<string> companyIds = new HashSet<string>();
-            foreach (Company company in incompanies)
-            {
-                companyIds.Add(company.company_id);
-            }
-
-            IEnumerable<Chatbot> inchatbots = await queriesSvc.GetAllChatbots();
-            foreach (var chatbot in inchatbots)
-            {
-                if (!companyIds.Contains(chatbot.company_id.ToString()))
-                {
-                    Console.WriteLine($"Deleting chatbot with ID: {chatbot.id}, Company ID: {chatbot.company_id}");
-                    await chatbotsContainer.DeleteItemAsync<Chatbot>(chatbot.id, new PartitionKey(chatbot.company_id));
-                }
-            }
-
-            return new OkResult();
-        }
     }
 }
