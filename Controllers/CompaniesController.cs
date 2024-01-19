@@ -70,6 +70,7 @@ namespace SalesBotApi.Controllers
                 return BadRequest("Invalid request, missing parameters");
             }
 
+            // TODO: once real user auth is in place then we will get the user_id from the JWT, not the request
             FullUser user = await GetUserById(newCompanyReq.user_id);
             string oldPartitionKeyValue = user.company_id;
             if(oldPartitionKeyValue == null || oldPartitionKeyValue == "") {
@@ -81,7 +82,6 @@ namespace SalesBotApi.Controllers
                 return BadRequest("User not found.");
             }
 
-            string newUuid = Guid.NewGuid().ToString();
             string companyId = Regex.Replace(newCompanyReq.name.ToLower(), @"[^a-z0-9]", "");
 
             Company company = await GetCompanyById(companyId);
@@ -97,10 +97,11 @@ namespace SalesBotApi.Controllers
 
             Company newCompany = new Company
             {
-                id = newUuid,
+                id = Guid.NewGuid().ToString(),
                 company_id = companyId,
                 name = newCompanyReq.name,
                 description = newCompanyReq.description,
+                email_for_leads = newCompanyReq.email_for_leads,
             };
 
             await companiesContainer.CreateItemAsync(newCompany, new PartitionKey(companyId));
@@ -132,7 +133,8 @@ namespace SalesBotApi.Controllers
                 List<PatchOperation> patchOperations = new List<PatchOperation>()
                 {
                     PatchOperation.Replace("/name", company.name),
-                    PatchOperation.Replace("/description", company.description)
+                    PatchOperation.Replace("/description", company.description),
+                    PatchOperation.Replace("/email_for_leads", company.email_for_leads)
                 };
                 await companiesContainer.PatchItemAsync<dynamic>(company.id, new PartitionKey(company.company_id), patchOperations);
 //                await companiesContainer.ReplaceItemAsync(company, company.id);
