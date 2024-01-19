@@ -1,6 +1,11 @@
 namespace SalesBotApi.Models
-
 {
+    public class RedirectPrompts
+    {
+        public string prompt { get; set; }
+        public string url { get; set; }
+    }
+
     public class Chatbot
     {
         public string id { get; set; }
@@ -12,5 +17,6 @@ namespace SalesBotApi.Models
         public string contact_method { get; set; }
         public string greeting { get; set; }
         public bool initialized { get; set; }
+        public RedirectPrompts[] redirect_prompts { get; set; }
     }
 }
