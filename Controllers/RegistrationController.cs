@@ -21,10 +21,15 @@ namespace SalesBotApi.Controllers
     {
 
         private readonly Container usersContainer;
+        private readonly SharedQueriesService queriesSvc;
 
-        public RegistrationController(CosmosDbService cosmosDbService)
+        public RegistrationController(
+            CosmosDbService cosmosDbService,
+            SharedQueriesService _queriesSvc
+        )
         {
             usersContainer = cosmosDbService.UsersContainer;
+            queriesSvc = _queriesSvc;
         }
 
         // POST: api/register
@@ -34,6 +39,15 @@ namespace SalesBotApi.Controllers
             if (loginReq.user_name == null || loginReq.password == null)
             {
                 return BadRequest("Invalid request, missing parameters");
+            }
+
+            IEnumerable<AuthorizedUser> users = await queriesSvc.GetAllItems<AuthorizedUser>(usersContainer);
+            foreach (AuthorizedUser preexistingUser in users)
+            {
+                if (preexistingUser.user_name.ToLower() == loginReq.user_name.ToLower())
+                {
+                    return BadRequest("User exists");
+                }
             }
 
             string newUuid = Guid.NewGuid().ToString();
