@@ -56,7 +56,10 @@ namespace SalesBotApi.Controllers
             }
             foreach (var company in companies)
             {
-                if (!companyIdsWithUsers.Contains(company.company_id.ToString()) && company.company_id.ToString()!="XXX")
+                if (!companyIdsWithUsers.Contains(company.company_id.ToString()) &&
+                    company.company_id.ToString()!="XXX" &&
+                    company.company_id.ToString()!="all"
+                )
                 {
                     Console.WriteLine($"Deleting company with ID: {company.id}, Company ID: {company.company_id}");
                     if(do_delete) {
@@ -65,7 +68,7 @@ namespace SalesBotApi.Controllers
                     }
                 }
             }
-            
+
             companies = await queriesSvc.GetAllItems<Company>(companiesContainer);
 
             HashSet<string> companyIds = new HashSet<string>();
