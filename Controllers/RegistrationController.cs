@@ -58,7 +58,8 @@ namespace SalesBotApi.Controllers
                 user_name = loginReq.user_name,
                 password = loginReq.password,
                 company_id = companyId,
-                role = "company_owner"
+                role = "company_owner",
+                approval_status = ""
             };
 
             Response.Headers.Add("Access-Control-Allow-Origin", "*");

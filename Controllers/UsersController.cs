@@ -16,34 +16,41 @@ using System.Security.Cryptography;
 
 namespace SalesBotApi.Controllers
 {
+    public class ApprovalStatusResponse {
+        public string approval_status { get; set; }
+    }
+
     [Route("api/[controller]")] 
     [ApiController]
-    public class LoginController : Controller
+    public class UsersController : Controller
     {
 
         private readonly Container usersContainer;
 
-        public LoginController(CosmosDbService cosmosDbService)
+        public UsersController(CosmosDbService cosmosDbService)
         {
             usersContainer = cosmosDbService.UsersContainer;
         }
 
-        // POST: api/login
-        [HttpPost]
-        public async Task<ActionResult<UserWithJwt>> LoginUser([FromBody] LoginRequest loginReq)
+        // GET: api/users/approval_status
+        [HttpGet("approval_status")]
+        [JwtAuthorize]
+        public async Task<ActionResult<ApprovalStatusResponse>> GetUserApprovalStatus()
         {
-            string sqlQueryText = $"SELECT * FROM c WHERE c.user_name = '{loginReq.user_name}' AND c.password = '{loginReq.password}' OFFSET 0 LIMIT 1";
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string user_id = userData.id;
+            string sqlQueryText = $"SELECT * FROM c WHERE c.id = '{user_id}'";
             QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
 
-            UserWithJwt authorizedUser = null;
+            UserBase user = null;
             try
             {
-                using (FeedIterator<UserWithJwt> feedIterator = usersContainer.GetItemQueryIterator<UserWithJwt>(queryDefinition))
+                using (FeedIterator<UserBase> feedIterator = usersContainer.GetItemQueryIterator<UserBase>(queryDefinition))
                 {
                     if (feedIterator.HasMoreResults)
                     {
-                        FeedResponse<UserWithJwt> response = await feedIterator.ReadNextAsync();
-                        authorizedUser = response.First();
+                        FeedResponse<UserBase> response = await feedIterator.ReadNextAsync();
+                        user = response.First();
                     }
                 }
             }
@@ -53,10 +60,12 @@ namespace SalesBotApi.Controllers
             }
 
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
-
-            if(authorizedUser != null) {
-                authorizedUser.jwt = JwtService.CreateToken(authorizedUser);
-                return Ok(authorizedUser);
+            if(user != null) {
+                ApprovalStatusResponse resp = new ApprovalStatusResponse
+                {
+                    approval_status = user.approval_status
+                };
+                return Ok(resp);
             }
             else return Unauthorized();
         }
