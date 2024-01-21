@@ -20,11 +20,13 @@ namespace SalesBotApi.Controllers
     {
         private readonly Container conversationsContainer;
         private readonly Container companiesContainer;
+        private readonly Container messagesContainer;
 
         public ConversationsController(CosmosDbService cosmosDbService)
         {
             conversationsContainer = cosmosDbService.ConversationsContainer;
             companiesContainer = cosmosDbService.CompaniesContainer;
+            messagesContainer = cosmosDbService.MessagesContainer;
         }
 
         // GET: api/conversations
@@ -75,6 +77,46 @@ namespace SalesBotApi.Controllers
 
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
             return conversations;
+        }
+
+        // DELETE: api/conversations
+        [HttpDelete]
+        [JwtAuthorize]
+        public async Task<IActionResult> DeleteConvo([FromQuery] string convo_id)
+        {
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string role = userData.role;
+            if(role != "root") {
+                return Unauthorized();
+            }
+
+            if(convo_id == null) {
+                return BadRequest("Missing convo_id parameter");
+            }
+
+            await conversationsContainer.DeleteItemAsync<Conversation>(convo_id, new PartitionKey(convo_id));
+
+            string sqlQueryText = $"SELECT * FROM m WHERE m.conversation_id = '{convo_id}'";
+            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+            List<Message> messages = new List<Message>();
+            using (FeedIterator<Message> feedIterator = messagesContainer.GetItemQueryIterator<Message>(queryDefinition))
+            {
+                while (feedIterator.HasMoreResults)
+                {
+                    FeedResponse<Message> response = await feedIterator.ReadNextAsync();
+                    messages.AddRange(response.ToList());
+                }
+            }
+
+            List<Task> deleteTasks = new List<Task>();
+            foreach (var message in messages)
+            {
+                Task deleteTask = messagesContainer.DeleteItemAsync<Message>(message.id, new PartitionKey(message.conversation_id));
+                deleteTasks.Add(deleteTask);
+            }
+            await Task.WhenAll(deleteTasks);
+
+            return NoContent();
         }
 
         private async Task<Company> GetCompanyById(string company_id)
