@@ -10,9 +10,9 @@ public class JwtService
     private static string secret = "foo-bar-001";
     private static TimeSpan tokenLifetime = TimeSpan.FromHours(24);
 
-    public static string CreateToken(FullUser fullUser)
+    public static string CreateToken(UserWithPassword fullUser)
     {
-        AuthorizedUser authorizedUser = new AuthorizedUser
+        UserWithJwt authorizedUser = new UserWithJwt
        {
            id = fullUser.id,
            user_name = fullUser.user_name,
@@ -21,7 +21,7 @@ public class JwtService
        return CreateToken(authorizedUser);
     }
 
-    public static string CreateToken(AuthorizedUser authorizedUser)
+    public static string CreateToken(UserWithJwt authorizedUser)
     {
         // Header
         var header = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
@@ -33,6 +33,7 @@ public class JwtService
             user_id = authorizedUser.id,
             user_name = authorizedUser.user_name,
             company_id = authorizedUser.company_id,
+            role = authorizedUser.role,
             exp = DateTimeOffset.UtcNow.Add(tokenLifetime).ToUnixTimeSeconds()
         };
         string payloadStr = JsonConvert.SerializeObject(payload);

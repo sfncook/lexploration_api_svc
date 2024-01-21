@@ -43,8 +43,8 @@ namespace SalesBotApi.Controllers
         public async Task<IActionResult> PerformCleanup()
         {
             JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
-            string company_id = userData.company_id;
-            if(company_id != "all") {
+            string role = userData.role;
+            if(role != "root") {
                 return Unauthorized();
             }
 
@@ -54,10 +54,10 @@ namespace SalesBotApi.Controllers
             IEnumerable<Chatbot> chatbots = await queriesSvc.GetAllItems<Chatbot>(chatbotsContainer);
             IEnumerable<Link> links = await queriesSvc.GetAllItems<Link>(linksContainer);
             IEnumerable<Message> messages = await queriesSvc.GetAllItems<Message>(messagesContainer);
-            IEnumerable<AuthorizedUser> users = await queriesSvc.GetAllItems<AuthorizedUser>(usersContainer);
+            IEnumerable<UserWithJwt> users = await queriesSvc.GetAllItems<UserWithJwt>(usersContainer);
 
             HashSet<string> companyIdsWithUsers = new HashSet<string>();
-            foreach (AuthorizedUser user in users)
+            foreach (UserWithJwt user in users)
             {
                 companyIdsWithUsers.Add(user.company_id);
             }

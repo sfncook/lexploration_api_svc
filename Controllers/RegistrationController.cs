@@ -41,8 +41,8 @@ namespace SalesBotApi.Controllers
                 return BadRequest("Invalid request, missing parameters");
             }
 
-            IEnumerable<AuthorizedUser> users = await queriesSvc.GetAllItems<AuthorizedUser>(usersContainer);
-            foreach (AuthorizedUser preexistingUser in users)
+            IEnumerable<UserWithJwt> users = await queriesSvc.GetAllItems<UserWithJwt>(usersContainer);
+            foreach (UserWithJwt preexistingUser in users)
             {
                 if (preexistingUser.user_name.ToLower() == loginReq.user_name.ToLower())
                 {
@@ -52,12 +52,13 @@ namespace SalesBotApi.Controllers
 
             string newUuid = Guid.NewGuid().ToString();
             string companyId = "XXX";
-            NewUser newUser = new NewUser
+            UserWithPassword newUser = new UserWithPassword
             {
                 id = newUuid,
                 user_name = loginReq.user_name,
                 password = loginReq.password,
-                company_id = companyId
+                company_id = companyId,
+                role = "company_owner"
             };
 
             Response.Headers.Add("Access-Control-Allow-Origin", "*");

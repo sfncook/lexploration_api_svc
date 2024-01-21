@@ -72,7 +72,7 @@ namespace SalesBotApi.Controllers
             string user_id = userData.user_id;
             string company_id = userData.company_id;
 
-            FullUser user = await GetUserById(user_id);
+            UserWithPassword user = await GetUserById(user_id);
             Console.WriteLine(user.company_id);
             if(user.company_id != "XXX" && user.company_id != "all") {
                 // Right now we're only letting each user create one company
@@ -98,7 +98,7 @@ namespace SalesBotApi.Controllers
 
             user.company_id = companyId;
             await usersContainer.CreateItemAsync(user, new PartitionKey(user.company_id));
-            await usersContainer.DeleteItemAsync<FullUser>(user.id, new PartitionKey(oldPartitionKeyValue));
+            await usersContainer.DeleteItemAsync<UserWithPassword>(user.id, new PartitionKey(oldPartitionKeyValue));
             await usersContainer.ReplaceItemAsync(user, user.id, new PartitionKey(user.company_id));
 
             Company newCompany = new Company
@@ -168,17 +168,17 @@ namespace SalesBotApi.Controllers
             }
         }
 
-        private async Task<FullUser> GetUserById(string user_id) {
+        private async Task<UserWithPassword> GetUserById(string user_id) {
             string sqlQueryText = $"SELECT * FROM c WHERE c.id = '{user_id}' OFFSET 0 LIMIT 1";
 
             QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
 
-            FullUser user = null;
-            using (FeedIterator<FullUser> feedIterator = usersContainer.GetItemQueryIterator<FullUser>(queryDefinition))
+            UserWithPassword user = null;
+            using (FeedIterator<UserWithPassword> feedIterator = usersContainer.GetItemQueryIterator<UserWithPassword>(queryDefinition))
             {
                 while (feedIterator.HasMoreResults)
                 {
-                    FeedResponse<FullUser> response = await feedIterator.ReadNextAsync();
+                    FeedResponse<UserWithPassword> response = await feedIterator.ReadNextAsync();
                     user = response.First();
                     break;
                 }

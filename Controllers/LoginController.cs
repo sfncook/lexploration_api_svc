@@ -37,19 +37,19 @@ namespace SalesBotApi.Controllers
 
         // POST: api/login
         [HttpPost]
-        public async Task<ActionResult<AuthorizedUser>> LoginUser([FromBody] LoginRequest loginReq)
+        public async Task<ActionResult<UserWithJwt>> LoginUser([FromBody] LoginRequest loginReq)
         {
             string sqlQueryText = $"SELECT * FROM c WHERE c.user_name = '{loginReq.user_name}' AND c.password = '{loginReq.password}' OFFSET 0 LIMIT 1";
             QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
 
-            AuthorizedUser authorizedUser = null;
+            UserWithJwt authorizedUser = null;
             try
             {
-                using (FeedIterator<AuthorizedUser> feedIterator = usersContainer.GetItemQueryIterator<AuthorizedUser>(queryDefinition))
+                using (FeedIterator<UserWithJwt> feedIterator = usersContainer.GetItemQueryIterator<UserWithJwt>(queryDefinition))
                 {
                     if (feedIterator.HasMoreResults)
                     {
-                        FeedResponse<AuthorizedUser> response = await feedIterator.ReadNextAsync();
+                        FeedResponse<UserWithJwt> response = await feedIterator.ReadNextAsync();
                         authorizedUser = response.First();
                     }
                 }
