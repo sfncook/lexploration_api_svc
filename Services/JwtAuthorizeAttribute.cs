@@ -13,7 +13,7 @@ public class JwtAuthorizeAttribute : Attribute, IAsyncActionFilter
         var token = context.HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
         if (token != null)
         {
-            JwtPayload jwtPayload = JwtValidator.ValidateAndDecodeToken(token, "foo-bar-001");
+            JwtPayload jwtPayload = JwtService.ValidateAndDecodeToken(token);
             if (jwtPayload != null)
             {
                 context.HttpContext.Items["UserData"] = jwtPayload;

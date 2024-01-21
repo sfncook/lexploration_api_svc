@@ -63,39 +63,10 @@ namespace SalesBotApi.Controllers
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
 
             if(authorizedUser != null) {
-                authorizedUser.jwt = CreateToken(authorizedUser, "foo-bar-001", TimeSpan.FromHours(24));
+                authorizedUser.jwt = JwtService.CreateToken(authorizedUser);
                 return Ok(authorizedUser);
             }
             else return Unauthorized();
-        }
-
-        private string CreateToken(AuthorizedUser authorizedUser, string secret, TimeSpan tokenLifetime)
-        {
-            // Header
-            var header = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
-            var headerBytes = Encoding.UTF8.GetBytes(header);
-            var headerBase64 = Convert.ToBase64String(headerBytes);
-
-            JwtPayload payload = new JwtPayload
-            {
-                user_id = authorizedUser.id,
-                user_name = authorizedUser.user_name,
-                company_id = authorizedUser.company_id,
-                exp = DateTimeOffset.UtcNow.Add(tokenLifetime).ToUnixTimeSeconds()
-            };
-            string payloadStr = JsonConvert.SerializeObject(payload);
-            var payloadBytes = Encoding.UTF8.GetBytes(payloadStr);
-            var payloadBase64 = Convert.ToBase64String(payloadBytes);
-
-            // Signature
-            var signature = $"{headerBase64}.{payloadBase64}";
-            using (var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret)))
-            {
-                var signatureBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(signature));
-                var signatureBase64 = Convert.ToBase64String(signatureBytes);
-
-                return $"{headerBase64}.{payloadBase64}.{signatureBase64}";
-            }
         }
     }
 }
