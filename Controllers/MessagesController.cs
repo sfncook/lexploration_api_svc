@@ -27,20 +27,27 @@ namespace SalesBotApi.Controllers
 
         // GET: api/messages
         [HttpGet]
+        [JwtAuthorize]
         public async Task<ActionResult<IEnumerable<Message>>> GetMessages(
             [FromQuery] string convo_id,
-            [FromQuery] string company_id,
             [FromQuery] bool? latest
         )
         {
-            if (convo_id != null && latest != null && company_id != null)
+            if (convo_id != null && latest != null)
             {
                 return BadRequest($"Invalid or missing parameters");
             }
 
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string company_id = userData.company_id;
+
             string sqlQueryText = "";
             if (convo_id != null) {
-                sqlQueryText = $"SELECT * FROM m WHERE m.conversation_id = '{convo_id}' ORDER BY m.timestamp ASC";
+                sqlQueryText = $"SELECT * FROM m WHERE m.conversation_id = '{convo_id}' ";
+                if (company_id != "all") {
+                    sqlQueryText += $" AND m.company_id = '{company_id}'";
+                }
+                sqlQueryText += $" ORDER BY m.timestamp ASC";
             }
             if (latest != null) {
                 sqlQueryText = "SELECT  * FROM c WHERE c._ts >= (GetCurrentTimestamp() / 1000) - (30 * 24 * 60 * 60) AND is_string(c.company_id)";
@@ -66,12 +73,11 @@ namespace SalesBotApi.Controllers
 
         // GET: api/messages/count_per_convo
         [HttpGet("count_per_convo")]
-        public async Task<ActionResult<IEnumerable<MessagesManyPerConvo>>> GetMessageCounts([FromQuery] string company_id)
+        [JwtAuthorize]
+        public async Task<ActionResult<IEnumerable<MessagesManyPerConvo>>> GetMessageCounts()
         {
-            if (company_id == null)
-            {
-                return BadRequest($"Invalid or missing parameters");
-            }
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string company_id = userData.company_id;
 
             string sqlQueryText = $"SELECT count(m) as many_msgs, m.conversation_id FROM m";
             if(company_id != "all") {

@@ -29,13 +29,15 @@ namespace SalesBotApi.Controllers
 
         // GET: api/conversations
         [HttpGet]
+        [JwtAuthorize]
         public async Task<ActionResult<IEnumerable<Conversation>>> GetConversations(
-            [FromQuery] string company_id,
             [FromQuery] int? since_timestamp,
             [FromQuery] bool? latest,
             [FromQuery] bool? with_user_data
         )
         {
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string company_id = userData.company_id;
             string sqlQueryText = "";
             if (company_id != null) {
                 if(company_id != "all") {
@@ -73,33 +75,6 @@ namespace SalesBotApi.Controllers
 
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
             return conversations;
-        }
-
-        // POST: api/conversations
-        [HttpPost]
-        public async Task<IActionResult> CreateConversation([FromQuery] string company_id)
-        {
-            Company company = await GetCompanyById(company_id);
-            if (company == null)
-            {
-                return NotFound($"Company with ID {company_id} not found.");
-            }
-
-            string _id = Guid.NewGuid().ToString();
-            Conversation conversation = new Conversation()
-            {
-                 id = _id,
-                 user_id = _id,
-                 company_id = company.company_id
-            };
-
-            await conversationsContainer.CreateItemAsync<Conversation>(conversation, new PartitionKey(_id));
-
-            return new JsonResult(conversation)
-            {
-                StatusCode = 200
-                // Add additional headers if needed
-            };
         }
 
         private async Task<Company> GetCompanyById(string company_id)

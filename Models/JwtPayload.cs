@@ -1,11 +1,11 @@
 namespace SalesBotApi.Models
 
 {
-    public class AuthorizedUser
+    public class JwtPayload
     {
-        public string id { get; set; }
+        public string user_id { get; set; }
         public string user_name { get; set; }
         public string company_id { get; set; }
-        public string jwt { get; set; }
+        public long exp { get; set; }
     }
 }

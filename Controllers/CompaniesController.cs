@@ -32,15 +32,11 @@ namespace SalesBotApi.Controllers
 
         // GET: api/companies
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Company>>> GetCompanies(
-            [FromQuery] string company_id
-        )
+        [JwtAuthorize]
+        public async Task<ActionResult<IEnumerable<Company>>> GetCompanies()
         {
-            if (company_id == null)
-            {
-                return BadRequest("Missing company_id parameter");
-            }
-
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string company_id = userData.company_id;
             string sqlQueryText;
             if (company_id == "all") sqlQueryText = $"SELECT * FROM c";
             else sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
@@ -63,15 +59,24 @@ namespace SalesBotApi.Controllers
 
         // POST: api/companies
         [HttpPost]
+        [JwtAuthorize]
         public async Task<ActionResult<Company>> CreateNewCompany([FromBody] NewCompanyRequest newCompanyReq)
         {
-            if (newCompanyReq.user_id == null || newCompanyReq.name == null || newCompanyReq.description == null)
+            if (newCompanyReq.name == null || newCompanyReq.description == null)
             {
                 return BadRequest("Invalid request, missing parameters");
             }
 
-            // TODO: once real user auth is in place then we will get the user_id from the JWT, not the request
-            FullUser user = await GetUserById(newCompanyReq.user_id);
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string user_id = userData.user_id;
+            string company_id = userData.company_id;
+
+            if(company_id != "XXX" || company_id != "all") {
+                // Right now we're only letting each user create one company
+                BadRequest();
+            }
+
+            FullUser user = await GetUserById(user_id);
             string oldPartitionKeyValue = user.company_id;
             if(oldPartitionKeyValue == null || oldPartitionKeyValue == "") {
                 Console.WriteLine($"oldPartitionKeyValue is empty or null:{oldPartitionKeyValue} - This means this request will probably fail.  You need to prime new accounts with 'company_id' == 'XXX'");
@@ -126,8 +131,17 @@ namespace SalesBotApi.Controllers
 
         // PUT: api/companies
         [HttpPut]
+        [JwtAuthorize]
         public async Task<IActionResult> UpdateCompany([FromBody] Company company)
         {
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string company_id = userData.company_id;
+            if(company_id != "all") {
+                if(company.company_id != company_id) {
+                    return Unauthorized();
+                }
+            }
+
             try
             {
                 List<PatchOperation> patchOperations = new List<PatchOperation>()

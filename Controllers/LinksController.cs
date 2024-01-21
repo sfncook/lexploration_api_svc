@@ -41,21 +41,18 @@ namespace SalesBotApi.Controllers
 
         // GET: api/links
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Link>>> GetLinks(
-            [FromQuery] string company_id
-        )
+        [JwtAuthorize]
+        public async Task<ActionResult<IEnumerable<Link>>> GetLinks()
         {
-            if (company_id == null)
-            {
-                return BadRequest("Missing company_id parameter");
-            }
-
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string company_id = userData.company_id;
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
             return Ok(await GetAllLinksForCompany(company_id));
         }
 
         // GET: api/links/xxx-yyy-zzz
         [HttpGet("{link_id}")]
+        [JwtAuthorize]
         public async Task<ActionResult<Link>> GetLinkWithId(string link_id)
         {
             if (link_id == null)
@@ -63,26 +60,46 @@ namespace SalesBotApi.Controllers
                 return BadRequest("Missing link id in path");
             }
 
-            string sqlQueryText = $"SELECT * FROM c WHERE c.id = '{link_id}' OFFSET 0 LIMIT 1";
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string company_id = userData.company_id;
+
+            string sqlQueryText = $"SELECT * FROM c WHERE c.id = '{link_id}'";
+            if(company_id != "all") {
+                sqlQueryText += $" AND c.company_id = '{company_id}'";
+            }
+            sqlQueryText += " OFFSET 0 LIMIT 1";
             QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
             Link link = null;
             using (FeedIterator<Link> feedIterator = linksContainer.GetItemQueryIterator<Link>(queryDefinition))
             {
-                while (feedIterator.HasMoreResults)
+                if (feedIterator.HasMoreResults)
                 {
                     FeedResponse<Link> response = await feedIterator.ReadNextAsync();
-                    link = response.First();
-                    break;
+                    link = response.FirstOrDefault(); // This will not throw an exception if the response is empty
                 }
             }
-            Response.Headers.Add("Access-Control-Allow-Origin", "*");
-            return link;
+            if(link != null)
+            {
+                Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                return link;
+            } else {
+                return NotFound();
+            }
         }
 
         // PUT: api/links
         [HttpPut]
-        public async Task<IActionResult> PutTodoItem([FromBody] Link link)
+        [JwtAuthorize]
+        public async Task<IActionResult> UpdateLink([FromBody] Link link)
         {
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string company_id = userData.company_id;
+            if(company_id != "all") {
+                if(link.company_id != company_id) {
+                    return Unauthorized();
+                }
+            }
+
             try
             {
                 Response.Headers.Add("Access-Control-Allow-Origin", "*");
@@ -97,16 +114,16 @@ namespace SalesBotApi.Controllers
 
         // POST: api/links
         [HttpPost]
-        public async Task<IActionResult> AddLink([FromQuery] string company_id, [FromBody] AddLinkRequest addLinkRequest)
+        [JwtAuthorize]
+        public async Task<IActionResult> AddLink([FromBody] AddLinkRequest addLinkRequest)
         {
-            if (company_id == null)
-            {
-                return BadRequest("Missing company_id query parameter");
-            }
             if (addLinkRequest == null)
             {
                 return BadRequest("Missing link text in body");
             }
+
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string company_id = userData.company_id;
 
             // Make POST request to the downstream service
             HttpClient client = _clientFactory.CreateClient();
@@ -124,12 +141,11 @@ namespace SalesBotApi.Controllers
 
         // POST: api/links/scrape
         [HttpPost("scrape")]
-        public async Task<IActionResult> AddLink([FromQuery] string company_id)
+        [JwtAuthorize]
+        public async Task<IActionResult> StartScrapingLinks()
         {
-            if (company_id == null)
-            {
-                return BadRequest("Missing company_id query parameter");
-            }
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string company_id = userData.company_id;
 
             await SetCompanyTraining(company_id);
             IEnumerable<Link> allLinks = await GetAllLinksForCompany(company_id);

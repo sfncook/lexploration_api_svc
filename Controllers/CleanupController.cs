@@ -39,8 +39,15 @@ namespace SalesBotApi.Controllers
 
         // DELETE: api/cleanup
         [HttpDelete]
+        [JwtAuthorize]
         public async Task<IActionResult> PerformCleanup()
         {
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string company_id = userData.company_id;
+            if(company_id != "all") {
+                return Unauthorized();
+            }
+
             bool do_delete = true;
             IEnumerable<Conversation> conversations = await queriesSvc.GetAllItems<Conversation>(conversationsContainer);
             IEnumerable<Company> companies = await queriesSvc.GetAllItems<Company>(companiesContainer);

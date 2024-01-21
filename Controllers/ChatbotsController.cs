@@ -29,14 +29,11 @@ namespace SalesBotApi.Controllers
 
         // GET: api/chatbots
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Chatbot>>> GetChatbots(
-            [FromQuery] string company_id
-        )
+        [JwtAuthorize]
+        public async Task<ActionResult<IEnumerable<Chatbot>>> GetChatbots()
         {
-            if (company_id == null)
-            {
-                return BadRequest("Missing company_id parameter");
-            }
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string company_id = userData.company_id;
 
             string sqlQueryText;
             if (company_id == "all") sqlQueryText = $"SELECT * FROM c";
@@ -60,10 +57,17 @@ namespace SalesBotApi.Controllers
 
         // PUT: api/chatbots
         [HttpPut]
-        public async Task<IActionResult> PutTodoItem([FromBody] Chatbot chatbot)
+        [JwtAuthorize]
+        public async Task<IActionResult> UpdateChatbot([FromBody] Chatbot chatbot)
         {
-            Console.WriteLine(chatbot.id);
-            Console.WriteLine(chatbot.company_id);
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string company_id = userData.company_id;
+            if(company_id != "all") {
+                if(chatbot.company_id != company_id) {
+                    return Unauthorized();
+                }
+            }
+
             try
             {
                 chatbot.initialized = true;
