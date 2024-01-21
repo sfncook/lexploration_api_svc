@@ -69,5 +69,32 @@ namespace SalesBotApi.Controllers
             }
             else return Unauthorized();
         }
+
+        // *** ROOT ADMIN ***
+        // GET: api/users
+        [HttpGet]
+        [JwtAuthorize]
+        public async Task<ActionResult<IEnumerable<UserBase>>> GetAllUsers()
+        {
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            if(userData.role != "root") {
+                return Unauthorized();
+            }
+
+            Response.Headers.Add("Access-Control-Allow-Origin", "*");
+
+            string sqlQueryText = "SELECT * FROM c";
+            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+            List<UserBase> users = new List<UserBase>();
+            using (FeedIterator<UserBase> feedIterator = usersContainer.GetItemQueryIterator<UserBase>(queryDefinition))
+            {
+                while (feedIterator.HasMoreResults)
+                {
+                    FeedResponse<UserBase> response = await feedIterator.ReadNextAsync();
+                    users.AddRange(response.ToList());
+                }
+            }
+            return users;
+        }
     }
 }
