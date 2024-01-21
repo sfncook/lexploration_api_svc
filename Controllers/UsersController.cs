@@ -19,6 +19,10 @@ namespace SalesBotApi.Controllers
     public class ApprovalStatusResponse {
         public string approval_status { get; set; }
     }
+    public class UpdateUserStatusRequest {
+        public UserBase user { get; set; }
+        public string approval_status { get; set; }
+    }
 
     [Route("api/[controller]")] 
     [ApiController]
@@ -95,6 +99,38 @@ namespace SalesBotApi.Controllers
                 }
             }
             return users;
+        }
+
+        // PUT: api/users/approval_status
+        [HttpPut("approval_status")]
+        [JwtAuthorize]
+        public async Task<IActionResult> UpdateUserStatus([FromBody] UpdateUserStatusRequest req)
+        {
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            if(userData.role != "root") {
+                return Unauthorized();
+            }
+
+            if(req.user == null || req.approval_status == null)
+            {
+                return BadRequest("Missing request data");
+            }
+
+            try
+            {
+                List<PatchOperation> patchOperations = new List<PatchOperation>()
+                {
+                    PatchOperation.Replace("/approval_status", req.approval_status)
+                };
+                await usersContainer.PatchItemAsync<dynamic>(req.user.id, new PartitionKey(req.user.company_id), patchOperations);
+
+                Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                return NoContent();
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return NotFound();
+            }
         }
     }
 }
