@@ -69,7 +69,7 @@ namespace SalesBotApi.Controllers
             }
 
             JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
-            string user_id = userData.user_id;
+            string user_id = userData.id;
             string company_id = userData.company_id;
 
             UserWithPassword user = await GetUserById(user_id);

@@ -30,7 +30,7 @@ public class JwtService
 
         JwtPayload payload = new JwtPayload
         {
-            user_id = authorizedUser.id,
+            id = authorizedUser.id,
             user_name = authorizedUser.user_name,
             company_id = authorizedUser.company_id,
             role = authorizedUser.role,
