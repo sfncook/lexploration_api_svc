@@ -11,6 +11,7 @@ namespace SalesBotApi.Models
         public string id { get; set; }
         public string company_id { get; set; }
         public bool show_avatar { get; set; }
+        public string avatar_view { get; set; }
         public string llm_model { get; set; }
         public string contact_prompt { get; set; }
         public string contact_link { get; set; }
