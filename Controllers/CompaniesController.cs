@@ -60,7 +60,7 @@ namespace SalesBotApi.Controllers
         // POST: api/companies
         [HttpPost]
         [JwtAuthorize]
-        public async Task<ActionResult<Company>> CreateNewCompany([FromBody] NewCompanyRequest newCompanyReq)
+        public async Task<ActionResult<NewCompanyResponse>> CreateNewCompany([FromBody] NewCompanyRequest newCompanyReq)
         {
             if (newCompanyReq.name == null || newCompanyReq.description == null)
             {
@@ -71,12 +71,12 @@ namespace SalesBotApi.Controllers
             string user_id = userData.user_id;
             string company_id = userData.company_id;
 
-            if(company_id != "XXX" || company_id != "all") {
-                // Right now we're only letting each user create one company
-                BadRequest();
-            }
-
             FullUser user = await GetUserById(user_id);
+            Console.WriteLine(user.company_id);
+            if(user.company_id != "XXX" && user.company_id != "all") {
+                // Right now we're only letting each user create one company
+                return BadRequest();
+            }
             string oldPartitionKeyValue = user.company_id;
             if(oldPartitionKeyValue == null || oldPartitionKeyValue == "") {
                 Console.WriteLine($"oldPartitionKeyValue is empty or null:{oldPartitionKeyValue} - This means this request will probably fail.  You need to prime new accounts with 'company_id' == 'XXX'");
@@ -126,7 +126,12 @@ namespace SalesBotApi.Controllers
             await chatbotsContainer.CreateItemAsync(newChatbot, new PartitionKey(companyId));
 
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
-            return Ok(newCompany);
+            NewCompanyResponse newCompanyResponse = new NewCompanyResponse
+            {
+                company = newCompany,
+                updated_jwt = JwtService.CreateToken(user)
+            };
+            return Ok(newCompanyResponse);
         }
 
         // PUT: api/companies

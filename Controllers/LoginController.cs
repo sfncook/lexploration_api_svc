@@ -47,11 +47,10 @@ namespace SalesBotApi.Controllers
             {
                 using (FeedIterator<AuthorizedUser> feedIterator = usersContainer.GetItemQueryIterator<AuthorizedUser>(queryDefinition))
                 {
-                    while (feedIterator.HasMoreResults)
+                    if (feedIterator.HasMoreResults)
                     {
                         FeedResponse<AuthorizedUser> response = await feedIterator.ReadNextAsync();
                         authorizedUser = response.First();
-                        break;
                     }
                 }
             }

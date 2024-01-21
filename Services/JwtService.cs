@@ -10,6 +10,17 @@ public class JwtService
     private static string secret = "foo-bar-001";
     private static TimeSpan tokenLifetime = TimeSpan.FromHours(24);
 
+    public static string CreateToken(FullUser fullUser)
+    {
+        AuthorizedUser authorizedUser = new AuthorizedUser
+       {
+           id = fullUser.id,
+           user_name = fullUser.user_name,
+           company_id = fullUser.company_id
+       };
+       return CreateToken(authorizedUser);
+    }
+
     public static string CreateToken(AuthorizedUser authorizedUser)
     {
         // Header
