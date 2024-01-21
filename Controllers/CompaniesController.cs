@@ -37,24 +37,25 @@ namespace SalesBotApi.Controllers
         {
             JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
             string company_id = userData.company_id;
-            string sqlQueryText;
-            if (company_id == "all") sqlQueryText = $"SELECT * FROM c";
-            else sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
-
-            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
-
-            List<Company> companies = new List<Company>();
-            using (FeedIterator<Company> feedIterator = companiesContainer.GetItemQueryIterator<Company>(queryDefinition))
-            {
-                while (feedIterator.HasMoreResults)
-                {
-                    FeedResponse<Company> response = await feedIterator.ReadNextAsync();
-                    companies.AddRange(response.ToList());
-                }
-            }
-
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
-            return companies;
+            IEnumerable<Company> companies = await GetCompanies(company_id);
+            return Ok(companies);
+        }
+
+        // GET: api/companies/client?company_id=...
+        [HttpGet("client")]
+        public async Task<ActionResult<Company>> GetCompaniesNoAuth([FromQuery] string company_id)
+        {
+            if (company_id == null)
+            {
+                return BadRequest("Missing company_id parameter");
+            }
+            Response.Headers.Add("Access-Control-Allow-Origin", "*");
+            IEnumerable<Company> companies = await GetCompanies(company_id);
+            if(companies.Count() == 0) {
+                return NotFound();
+            }
+            return Ok(companies.First());
         }
 
         // POST: api/companies
@@ -204,6 +205,25 @@ namespace SalesBotApi.Controllers
             }
 
             return company;
+        }
+
+        private async Task<IEnumerable<Company>> GetCompanies(string company_id) {
+            string sqlQueryText;
+            if (company_id == "all") sqlQueryText = $"SELECT * FROM c";
+            else sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
+
+            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+
+            List<Company> companies = new List<Company>();
+            using (FeedIterator<Company> feedIterator = companiesContainer.GetItemQueryIterator<Company>(queryDefinition))
+            {
+                while (feedIterator.HasMoreResults)
+                {
+                    FeedResponse<Company> response = await feedIterator.ReadNextAsync();
+                    companies.AddRange(response.ToList());
+                }
+            }
+            return companies;
         }
 
     }
