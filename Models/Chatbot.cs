@@ -5,6 +5,11 @@ namespace SalesBotApi.Models
         public string prompt { get; set; }
         public string url { get; set; }
     }
+    public class AnsweredQuestion
+    {
+        public string question { get; set; }
+        public string answer { get; set; }
+    }
 
     public class Chatbot
     {
@@ -18,5 +23,6 @@ namespace SalesBotApi.Models
         public string greeting { get; set; }
         public bool initialized { get; set; }
         public RedirectPrompts[] redirect_prompts { get; set; }
+        public AnsweredQuestion[] answered_questions { get; set; }
     }
 }
