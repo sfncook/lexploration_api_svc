@@ -116,13 +116,9 @@ namespace SalesBotApi.Controllers
             {
                 id = Guid.NewGuid().ToString(),
                 company_id = companyId,
-                show_avatar = true,
                 llm_model = "keli-35-turbo",
-                contact_prompt = "Try to get the user to tell you their name, email, and phone number",
-                contact_link = "",
-                contact_method = "contact_form",
                 greeting = $"Hi! I'm Keli! I can answer your questions about {newCompany.name}.",
-                initialized = false,
+                avatar_view = 'headshot'
             };
             await chatbotsContainer.CreateItemAsync(newChatbot, new PartitionKey(companyId));
 
