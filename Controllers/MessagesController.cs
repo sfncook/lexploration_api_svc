@@ -23,10 +23,12 @@ namespace SalesBotApi.Controllers
         [JwtAuthorize]
         public async Task<ActionResult<IEnumerable<Message>>> GetMessages(
             [FromQuery] string convo_id,
-            [FromQuery] bool? latest
+            [FromQuery] bool? latest,
+            [FromQuery] bool? hasUserData
         )
+        
         {
-            if (convo_id != null && latest != null)
+            if (convo_id != null && latest != null && hasUserData != null)
             {
                 return BadRequest($"Invalid or missing parameters");
             }
@@ -44,6 +46,21 @@ namespace SalesBotApi.Controllers
             }
             if (latest != null) {
                 sqlQueryText = "SELECT  * FROM c WHERE c._ts >= (GetCurrentTimestamp() / 1000) - (30 * 24 * 60 * 60) AND is_string(c.company_id)";
+                if (company_id != "all") {
+                    sqlQueryText += $" AND c.company_id = '{company_id}'";
+                }
+            }
+            if (hasUserData != null) {
+                sqlQueryText = @"SELECT * FROM c WHERE 
+                    is_string(c.user_first_name) or 
+                    is_string(c.user_last_name) or 
+                    is_string(c.user_email) or 
+                    is_string(c.user_phone_number) or 
+                    c.user_wants_to_be_contacted=true or 
+                    c.user_wants_to_install_the_demo=true or
+                    c.user_wants_to_schedule_call_with_sales_rep=true or
+                    c.user_wants_to_schedule_call_with_sales_rep=true
+                    ";
                 if (company_id != "all") {
                     sqlQueryText += $" AND c.company_id = '{company_id}'";
                 }

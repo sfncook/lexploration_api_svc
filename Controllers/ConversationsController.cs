@@ -27,9 +27,7 @@ namespace SalesBotApi.Controllers
         [HttpGet]
         [JwtAuthorize]
         public async Task<ActionResult<IEnumerable<Conversation>>> GetConversations(
-            [FromQuery] int? since_timestamp,
-            [FromQuery] bool? latest,
-            [FromQuery] bool? with_user_data
+            [FromQuery] int? since_timestamp
         )
         {
             JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
@@ -48,12 +46,6 @@ namespace SalesBotApi.Controllers
                 else sqlQueryText += " WHERE ";
                 //(GetCurrentTimestamp() / 1000) - (30 * 24 * 60 * 60)
                 sqlQueryText += $"c._ts >= {since_timestamp}";
-            }
-            if (latest != null) {
-                sqlQueryText = "SELECT  * FROM c WHERE c._ts >= (GetCurrentTimestamp() / 1000) - (30 * 24 * 60 * 60)";
-            }
-            if (with_user_data != null) {
-                sqlQueryText = "SELECT * FROM c WHERE IS_STRING(c.user_email) OR IS_STRING(c.user_phone_number) OR IS_STRING(c.user_first_name) OR IS_STRING(c.user_last_name)";
             }
             sqlQueryText += " ORDER BY c._ts DESC";
 
