@@ -1,7 +1,6 @@
 using System;
 using System.Text;
 using System.Security.Cryptography;
-using Newtonsoft.Json.Linq;
 using SalesBotApi.Models;
 using Newtonsoft.Json;
 

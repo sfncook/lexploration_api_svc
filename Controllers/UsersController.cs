@@ -1,18 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using SalesBotApi.Models;
 using Microsoft.Azure.Cosmos;
-using System;
-using System.Text;
-using Microsoft.Extensions.Configuration;
-using System.Security.Cryptography;
 
 namespace SalesBotApi.Controllers
 {
