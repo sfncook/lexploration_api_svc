@@ -23,22 +23,16 @@ namespace SalesBotApi
         {
             services.AddControllers();
 
-            // Register the Swagger generator, defining 1 or more Swagger documents
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "SalesChat.bot API", Version = "v1" });
             });
-
             services.AddSingleton<CosmosDbService>();
-
             services.AddSingleton<EmailService>();
-
             services.AddSingleton<QueueService>();
-
             services.AddSingleton<SharedQueriesService>();
-
             services.AddSingleton<JwtService>();
-
+            services.AddSingleton<SemanticKernelService>();
             services.AddCors(options =>
                 {
                     options.AddPolicy("AllowSpecificOrigin",
@@ -46,7 +40,6 @@ namespace SalesBotApi
                                           .AllowAnyHeader()
                                           .AllowAnyMethod());
                 });
-
             services.AddHttpClient();
         }
 

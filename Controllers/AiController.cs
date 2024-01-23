@@ -1,38 +1,25 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using SalesBotApi.Models;
-using System;
-using Microsoft.SemanticKernel;
 
 namespace SalesBotApi.Controllers
 {
-    public class EmailPlugin
-    {
-        [KernelFunction]
-        [Description("Sends an email to a recipient.")]
-        public async Task SendEmailAsync(
-            Kernel kernel,
-            [Description("Semicolon delimitated list of emails of the recipients")] string recipientEmails,
-            string subject,
-            string body
-        )
-        {
-            // Add logic to send an email using the recipientEmails, subject, and body
-            // For now, we'll just print out a success message to the console
-            Console.WriteLine("Email sent!");
-        }
-    }
-
     [Route("api/[controller]")] 
     [ApiController]
     public class AiController : Controller
     {
+        private readonly SemanticKernelService semanticKernelService;
+
+        public AiController(SemanticKernelService _semanticKernelService)
+        {
+            semanticKernelService = _semanticKernelService;
+        }
 
         // *** ROOT ADMIN ***
         // GET: api/ai
         [HttpGet]
         [JwtAuthorize]
-        public async Task<IActionResult> TestAi()
+        public async Task<ActionResult<string>> TestAi()
         {
             JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
             if(userData.role != "root") {
@@ -40,7 +27,7 @@ namespace SalesBotApi.Controllers
             }
 
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
-            return Ok();
+            return Ok(await semanticKernelService.GetJoke());
         }
     }
 }
