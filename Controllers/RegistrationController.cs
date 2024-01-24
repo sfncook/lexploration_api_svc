@@ -32,7 +32,13 @@ namespace SalesBotApi.Controllers
         [HttpPost("test")]
         public async Task<IActionResult> Test([FromBody] LoginRequest loginReq)
         {
-            await emailService.SendEmailSmtpAsync("sfncook@gmail.com", "Testing 001", "Hello from C#");
+            await emailService.SendEmail(
+                "hello@saleschat.bot", 
+                "Sales Chatbot Registration", 
+                "sfncook@gmail.com", 
+                "Hello from C#", 
+                "Hello world!  This is from C# code."
+            );
             return Ok();
         }
 

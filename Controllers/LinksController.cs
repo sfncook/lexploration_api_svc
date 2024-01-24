@@ -19,20 +19,17 @@ namespace SalesBotApi.Controllers
         private readonly IHttpClientFactory _clientFactory;
         private readonly Container companiesContainer;
         private readonly QueueService queueService;
-        private readonly SharedQueriesService queriesSvc;
 
         public LinksController(
             CosmosDbService cosmosDbService,
             IHttpClientFactory clientFactory,
-            QueueService _queueService,
-            SharedQueriesService _queriesSvc
+            QueueService _queueService
         )
         {
             linksContainer = cosmosDbService.LinksContainer;
             _clientFactory = clientFactory;
             companiesContainer = cosmosDbService.CompaniesContainer;
             queueService = _queueService;
-            queriesSvc = _queriesSvc;
         }
 
         // GET: api/links
@@ -151,7 +148,7 @@ namespace SalesBotApi.Controllers
             foreach (var batch in linkBatches)
             {
                 var tasks = batch.Select(link =>
-                    queueService.EnqueueMessageAsync(JsonConvert.SerializeObject(link)))
+                    queueService.EnqueueScrapLinksMessageAsync(JsonConvert.SerializeObject(link)))
                     .ToList();
                 await Task.WhenAll(tasks);
             }
