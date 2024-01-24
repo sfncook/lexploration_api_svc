@@ -56,6 +56,30 @@ namespace SalesBotApi.Controllers
             return refinements;
         }
 
+        // PUT: api/refinements
+        [HttpPut]
+        [JwtAuthorize]
+        public async Task<IActionResult> UpdateRefinement([FromBody] Refinement refinement)
+        {
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string company_id = userData.company_id;
+
+            if(company_id!="all" && company_id!=refinement.company_id) {
+                return Unauthorized();
+            }
+
+            try
+            {
+                await refinementsContainer.ReplaceItemAsync(refinement, refinement.id);
+                return NoContent();
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return NotFound();
+            }
+        }
+
+
         // POST: api/refinements
         [HttpPost]
         [JwtAuthorize]
