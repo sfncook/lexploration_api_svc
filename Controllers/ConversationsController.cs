@@ -104,27 +104,5 @@ namespace SalesBotApi.Controllers
 
             return NoContent();
         }
-
-        private async Task<Company> GetCompanyById(string company_id)
-        {
-            string sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
-            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
-
-            FeedIterator<Company> feedIterator = companiesContainer.GetItemQueryIterator<Company>(queryDefinition);
-
-            Company company = null;
-            while (feedIterator.HasMoreResults)
-            {
-                FeedResponse<Company> response = await feedIterator.ReadNextAsync();
-                if (response.Count > 0)
-                {
-                    company = response.First();
-                    break;
-                }
-            }
-
-            return company;
-        }
-
     }
 }

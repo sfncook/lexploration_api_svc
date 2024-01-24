@@ -12,12 +12,12 @@ namespace SalesBotApi.Controllers
     public class ChatbotsController : Controller
     {
         private readonly Container chatbotsContainer;
-        private readonly SharedQueriesService queriesSvc;
+        private readonly SharedQueriesService sharedQueriesService;
 
-        public ChatbotsController(CosmosDbService cosmosDbService, SharedQueriesService _queriesSvc)
+        public ChatbotsController(CosmosDbService cosmosDbService, SharedQueriesService _sharedQueriesService)
         {
             chatbotsContainer = cosmosDbService.ChatbotsContainer;
-            queriesSvc = _queriesSvc;
+            sharedQueriesService = _sharedQueriesService;
         }
 
         // GET: api/chatbots
@@ -28,7 +28,7 @@ namespace SalesBotApi.Controllers
             JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
             string company_id = userData.company_id;
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
-            IEnumerable<Chatbot> chatbots = await GetChatbots(company_id);
+            IEnumerable<Chatbot> chatbots = await sharedQueriesService.GetChatbotsByCompanyId(company_id);
             return Ok(chatbots);
         }
 
@@ -41,7 +41,7 @@ namespace SalesBotApi.Controllers
                 return BadRequest("Missing company_id parameter");
             }
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
-            IEnumerable<Chatbot> chatbots = await GetChatbots(company_id);
+            IEnumerable<Chatbot> chatbots = await sharedQueriesService.GetChatbotsByCompanyId(company_id);
             if(chatbots.Count() == 0) {
                 return NotFound();
             }
@@ -71,25 +71,6 @@ namespace SalesBotApi.Controllers
             {
                 return NotFound();
             }
-        }
-
-        private async Task<IEnumerable<Chatbot>> GetChatbots(string company_id) {
-            string sqlQueryText;
-            if (company_id == "all") sqlQueryText = $"SELECT * FROM c";
-            else sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
-
-            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
-
-            List<Chatbot> chatbots = new List<Chatbot>();
-            using (FeedIterator<Chatbot> feedIterator = chatbotsContainer.GetItemQueryIterator<Chatbot>(queryDefinition))
-            {
-                while (feedIterator.HasMoreResults)
-                {
-                    FeedResponse<Chatbot> response = await feedIterator.ReadNextAsync();
-                    chatbots.AddRange(response.ToList());
-                }
-            }
-            return chatbots;
         }
     }
 }

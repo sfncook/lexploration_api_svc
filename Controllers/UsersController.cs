@@ -49,7 +49,7 @@ namespace SalesBotApi.Controllers
                     }
                 }
             }
-            catch (CosmosException ex)
+            catch (CosmosException)
             {
                 return Unauthorized();
             }
