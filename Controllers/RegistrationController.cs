@@ -15,14 +15,25 @@ namespace SalesBotApi.Controllers
 
         private readonly Container usersContainer;
         private readonly SharedQueriesService queriesSvc;
+        private readonly EmailService emailService;
 
         public RegistrationController(
             CosmosDbService cosmosDbService,
-            SharedQueriesService _queriesSvc
+            SharedQueriesService _queriesSvc,
+            EmailService _emailService
         )
         {
             usersContainer = cosmosDbService.UsersContainer;
             queriesSvc = _queriesSvc;
+            emailService = _emailService;
+        }
+
+        // POST: api/register/test
+        [HttpPost("test")]
+        public async Task<IActionResult> Test([FromBody] LoginRequest loginReq)
+        {
+            await emailService.SendEmailSmtpAsync("sfncook@gmail.com", "Testing 001", "Hello from C#");
+            return Ok();
         }
 
         // POST: api/register
