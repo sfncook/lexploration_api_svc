@@ -44,7 +44,7 @@ namespace SalesBotApi.Controllers
 
         // POST: api/register
         [HttpPost]
-        public async Task<IActionResult> LoginUser([FromBody] LoginRequest loginReq)
+        public async Task<IActionResult> RegisterNewUser([FromBody] LoginRequest loginReq)
         {
             if (loginReq.user_name == null || loginReq.password == null)
             {
@@ -74,6 +74,8 @@ namespace SalesBotApi.Controllers
 
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
             await usersContainer.CreateItemAsync(newUser, new PartitionKey(companyId));
+            await emailService.SendRegistrationEmail(loginReq.user_name);
+
             return NoContent();
         }
     }

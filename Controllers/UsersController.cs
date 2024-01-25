@@ -21,10 +21,12 @@ namespace SalesBotApi.Controllers
     {
 
         private readonly Container usersContainer;
+        private readonly EmailService emailService;
 
-        public UsersController(CosmosDbService cosmosDbService)
+        public UsersController(CosmosDbService cosmosDbService, EmailService _emailService)
         {
             usersContainer = cosmosDbService.UsersContainer;
+            emailService = _emailService;
         }
 
         // GET: api/users/approval_status
@@ -114,6 +116,12 @@ namespace SalesBotApi.Controllers
                     PatchOperation.Replace("/approval_status", req.approval_status)
                 };
                 await usersContainer.PatchItemAsync<dynamic>(req.user.id, new PartitionKey(req.user.company_id), patchOperations);
+
+                if(req.approval_status=="approved") {
+                    await emailService.SendRegistrationApprovalEmail(req.user.user_name);
+                } else {
+                    await emailService.SendRegistrationDeniedEmail(req.user.user_name);
+                }
 
                 Response.Headers.Add("Access-Control-Allow-Origin", "*");
                 return NoContent();

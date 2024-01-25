@@ -20,7 +20,7 @@ public class QueueService
 
         sendEmailQueueClient = new QueueClient(
             "DefaultEndpointsProtocol=https;AccountName=kelichatbot2;AccountKey=IgE1pLaUd5b+JOftL5wGogI1lnEQa0FoYK31yPeNwzcOeboqktRV7xntaEh8APmT+sXpX7niYIfC+AStHRnN3A==;EndpointSuffix=core.windows.net",
-            "send-email-dev"
+            "send-email"
         );
         sendEmailQueueClient.CreateIfNotExists();
     }
