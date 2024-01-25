@@ -11,6 +11,16 @@ using System.Text;
 
 namespace SalesBotApi.Controllers
 {
+    public class AddLinkRequest
+    {
+        public string link { get; set; }
+    }
+    public class DeleteLinkRequest
+    {
+        public string link_id { get; set; }
+        public string company_id { get; set; }
+    }
+
     [Route("api/[controller]")] 
     [ApiController]
     public class LinksController : Controller
@@ -104,6 +114,63 @@ namespace SalesBotApi.Controllers
                 return NotFound();
             }
         }
+
+        // POST: api/links/add
+        [HttpPost("add")]
+        [JwtAuthorize]
+        public async Task<IActionResult> AddLinkToDb([FromBody] AddLinkRequest req)
+        {
+            if (req == null)
+            {
+                return BadRequest("Missing link text in body");
+            }
+
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string company_id = userData.company_id;
+
+            Link newLink = new Link
+            {
+                id = Guid.NewGuid().ToString(),
+                link = req.link,
+                company_id = company_id,
+                status = "",
+                result = "",
+            };
+
+            try {
+                await linksContainer.CreateItemAsync(newLink, new PartitionKey(company_id));
+            }
+            catch (CosmosException)
+            {
+                return BadRequest();
+            }
+            return NoContent();
+        }
+
+        // POST: api/links/remove
+        [HttpDelete("remove")]
+        [JwtAuthorize]
+        public async Task<IActionResult> RemoveLinkFromDb([FromBody] DeleteLinkRequest req)
+        {
+            if (req == null)
+            {
+                return BadRequest("Missing link text in body");
+            }
+
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string company_id = userData.company_id;
+
+            try {
+                await linksContainer.DeleteItemAsync<Company>(req.link_id, new PartitionKey(req.company_id));
+            }
+            catch (CosmosException)
+            {
+                return BadRequest();
+            }
+            return NoContent();
+        }
+
+
 
         // POST: api/links
         [HttpPost]
