@@ -13,13 +13,11 @@ namespace SalesBotApi.Controllers
     public class ConversationsController : Controller
     {
         private readonly Container conversationsContainer;
-        private readonly Container companiesContainer;
         private readonly Container messagesContainer;
 
         public ConversationsController(CosmosDbService cosmosDbService)
         {
             conversationsContainer = cosmosDbService.ConversationsContainer;
-            companiesContainer = cosmosDbService.CompaniesContainer;
             messagesContainer = cosmosDbService.MessagesContainer;
         }
 
@@ -103,6 +101,38 @@ namespace SalesBotApi.Controllers
             await Task.WhenAll(deleteTasks);
 
             return NoContent();
+        }
+
+
+        // Stupid fucking hack because Azure functions are pure dog shit.
+        // GET: api/conversations/verify
+        [HttpGet("verify")]
+        public async Task<IActionResult> VerifyConversationById(
+            [FromQuery] string convo_id
+        )
+        {
+            if (convo_id == null) {
+                return BadRequest();
+            }
+
+            string sqlQueryText = $"SELECT * FROM c WHERE c.id = '{convo_id}'  OFFSET 0 LIMIT 1";
+            Console.WriteLine(sqlQueryText);
+
+            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+
+            List<Conversation> conversations = new List<Conversation>();
+            using (FeedIterator<Conversation> feedIterator = conversationsContainer.GetItemQueryIterator<Conversation>(queryDefinition))
+            {
+                while (feedIterator.HasMoreResults)
+                {
+                    FeedResponse<Conversation> response = await feedIterator.ReadNextAsync();
+                    conversations.AddRange(response.ToList());
+                }
+            }
+
+            Response.Headers.Add("Access-Control-Allow-Origin", "*");
+            if(conversations.Count() > 0) return NoContent();
+            else return NotFound();
         }
     }
 }
