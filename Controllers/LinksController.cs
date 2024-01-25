@@ -15,6 +15,10 @@ namespace SalesBotApi.Controllers
     {
         public string link { get; set; }
     }
+    public class StartTrainingRequest
+    {
+        public string[] links { get; set; }
+    }
     public class DeleteLinkRequest
     {
         public string link_id { get; set; }
@@ -115,6 +119,7 @@ namespace SalesBotApi.Controllers
             }
         }
 
+        //DELETE THIS
         // POST: api/links/add
         [HttpPost("add")]
         [JwtAuthorize]
@@ -147,6 +152,7 @@ namespace SalesBotApi.Controllers
             return NoContent();
         }
 
+        //DELETE THIS
         // POST: api/links/remove
         [HttpDelete("remove")]
         [JwtAuthorize]
@@ -171,7 +177,7 @@ namespace SalesBotApi.Controllers
         }
 
 
-
+        //DELETE THIS
         // POST: api/links
         [HttpPost]
         [JwtAuthorize]
@@ -199,6 +205,7 @@ namespace SalesBotApi.Controllers
             return NoContent();
         }
 
+        //DELETE THIS
         // POST: api/links/scrape
         [HttpPost("scrape")]
         [JwtAuthorize]
@@ -223,6 +230,49 @@ namespace SalesBotApi.Controllers
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
             return NoContent();
         }
+        
+        // POST: api/links/start_training
+        [HttpPost("start_training")]
+        [JwtAuthorize]
+        public async Task<IActionResult> StartTraining([FromBody] StartTrainingRequest req)
+        {
+            if (req == null || req.links == null || !req.links.Any())
+            {
+                return BadRequest();
+            }
+
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            if (userData == null)
+            {
+                return Unauthorized(); // Or some other appropriate response
+            }
+
+            string company_id = userData.company_id;
+            if (company_id == "all" || company_id == "XXX")
+            {
+                return BadRequest();
+            }
+
+            await SetCompanyTraining(company_id);
+
+            var tasks = req.links.Select(linkStr => AddLinkToDb2(linkStr, company_id)).ToList();
+            await Task.WhenAll(tasks);
+
+            IEnumerable<Link> allLinks = await GetAllLinksForCompany(company_id);
+            var filteredLinks = allLinks.Where(link => string.IsNullOrWhiteSpace(link.status));
+            int batchSize = 10;
+            var linkBatches = BatchLinks(filteredLinks, batchSize);
+
+            foreach (var batch in linkBatches)
+            {
+                var tasks2 = batch.Select(link =>
+                    queueService.EnqueueScrapLinksMessageAsync(JsonConvert.SerializeObject(link)))
+                    .ToList();
+                await Task.WhenAll(tasks2);
+            }
+
+            return NoContent();
+        }
 
         private IEnumerable<IEnumerable<Link>> BatchLinks(IEnumerable<Link> links, int batchSize)
         {
@@ -232,6 +282,19 @@ namespace SalesBotApi.Controllers
                 yield return links.Skip(total).Take(batchSize);
                 total += batchSize;
             }
+        }
+
+        private async Task AddLinkToDb2(string linkStr, string company_id) {
+            Link newLink = new Link
+            {
+                id = Guid.NewGuid().ToString(),
+                link = linkStr,
+                company_id = company_id,
+                status = "",
+                result = "",
+            };
+
+            await linksContainer.CreateItemAsync(newLink, new PartitionKey(company_id));
         }
 
         private async Task<ItemResponse<dynamic>> SetCompanyTraining(string company_id) {
