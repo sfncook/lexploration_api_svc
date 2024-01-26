@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using System.Net.Http;
 using System.Text;
 using System.Linq;
+using System.Diagnostics;
 
 public class MemoryStoreService
 {
@@ -77,50 +78,19 @@ public class MemoryStoreService
         }
     }
 
-        // curl -X POST "https://companies-x9v8jnv.svc.gcp-starter.pinecone.io/query" \
-        // -H "Api-Key: fcafedc4-cf32-4b4a-9d26-08fc227cf526" \
-        // -H 'Content-Type: application/json' \
-        // -d '{
-        //     "namespace": "saleschat_bot",
-        //     "vector": [0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3],
-        //     "topK": 2,
-        //     "includeValues": true,
-        //     "includeMetadata": true,
-        //     "filter": {"genre": {"$eq": "action"}}
-        // }'
-    public async Task<PineconeQueryResponse> Read(string question)
+    public async Task<float[]> GetVector(string question)
     {
-        AzureOpenAIEmbeddings openAIEmbeddings = new AzureOpenAIEmbeddings();
-        float[] embeddings = await openAIEmbeddings.GetEmbeddingsAsync(question);
-        string embeddingsStr = string.Join(", ", embeddings);
-
-        // var content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
-        string body = @"{""namespace"": ""ns1"",""vector"": [XXX],""topK"": 2,""includeValues"": false,""includeMetadata"": true}";
-        body = body.Replace("XXX", embeddingsStr);
-        Console.WriteLine(body);
-        var content = new StringContent(body);
-
-        // Replace HttpMethod.Get with HttpMethod.Post
-        using (var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"https://companies-x9v8jnv.svc.gcp-starter.pinecone.io/query"))
-        {
-            requestMessage.Content = content;
-            requestMessage.Headers.Add("api-key", apiKey);
-
-            var response = await _httpClient.SendAsync(requestMessage);
-            response.EnsureSuccessStatusCode();
-
-            var responseString = await response.Content.ReadAsStringAsync();
-            // Console.WriteLine(responseString);
-            var embeddingsResponse = JsonConvert.DeserializeObject<PineconeQueryResponse>(responseString);
-            return embeddingsResponse;
-        }
-    }
-
-    public async Task<string[]> GetRelevantContexts(string question, string companyId)
-    {
+        Stopwatch stopwatch = Stopwatch.StartNew();
         // TODO: Add latency metric
         float[] vectorFloatArr = await openAIEmbeddings.GetEmbeddingsAsync(question);
+        stopwatch.Stop();
+        Console.WriteLine($"GetVector: {stopwatch.ElapsedMilliseconds} ms");
+        return vectorFloatArr;
+    }
 
+    public async Task<string[]> GetRelevantContexts(float[] vectorFloatArr, string companyId)
+    {
+        Stopwatch stopwatch = Stopwatch.StartNew();
         PineconeQueryRequest req = new PineconeQueryRequest
         {
             @namespace = companyId,
@@ -152,11 +122,14 @@ public class MemoryStoreService
                 return Array.Empty<string>();
             }
 
-            return embeddingsResponse.matches
+            var resp = embeddingsResponse.matches
                 .Where(match => match != null && match.metadata != null && match.metadata.salesbot != null)
                 .Select(match => match.metadata.salesbot)
                 .ToArray();
 
+            stopwatch.Stop();
+            Console.WriteLine($"GetRelevantContexts: {stopwatch.ElapsedMilliseconds} ms");
+            return resp;
         }
     }
 

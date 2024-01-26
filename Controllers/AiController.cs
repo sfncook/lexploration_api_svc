@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
-using SalesBotApi.Models;
 using System;
 
 namespace SalesBotApi.Controllers
@@ -31,7 +30,7 @@ namespace SalesBotApi.Controllers
             [FromQuery] string companyid
         )
         {
-            if(req==null || req.user_msg==null){
+            if(req==null || req.user_question==null){
                 return BadRequest();
             }
 
@@ -42,38 +41,20 @@ namespace SalesBotApi.Controllers
             // }
 
 
-            // var contextDocs = await memoryStoreService.Read(req.user_msg);
-            string[] contextDocs = await memoryStoreService.GetRelevantContexts(req.user_msg, companyid);
+            // TODO: Add metric many contextDocs by company(?)
+            float[] vector = await memoryStoreService.GetVector(req.user_question);
+            string[] contextDocs = await memoryStoreService.GetRelevantContexts(vector, companyid);
             Console.WriteLine($"contextDocs:{contextDocs.Length}");
+            Console.WriteLine(string.Join("','", contextDocs));
 
-            return Ok(contextDocs);
-        }
+            string resp = await semanticKernelService.SubmitUserQuestion(req.user_question, contextDocs);
 
-        // *** ROOT ADMIN ***
-        // GET: api/ai
-        [HttpGet]
-        [JwtAuthorize]
-        public async Task<IActionResult> TestAi()
-        {
-            // Query vector db
-            var resp = await memoryStoreService.Read("What is my name?");
-
-            // Upsert to vector db
-            // await memoryStoreService.Write("My name is Shawn", "https://example.com");
-
-            // Chunker
-            // string[] chunks = await webpageProcessor.GetTextChunksFromUrlAsync("https://www.blacktiecasinoevents.com/", 1000);
-            // Console.WriteLine(string.Join("'********\n********'", chunks));
-
-            // string content = "We sell brown horses, but no other colors of horses.";
-            // var resp = await azureOpenAIEmbeddings.GetEmbeddingsAsync(content);
-
-            return Ok();
+            return Ok(resp);
         }
     }
 
     public class SubmitRequest {
-        public string user_msg { get; set; }
+        public string user_question { get; set; }
         public bool mute { get; set; }
     }
 }

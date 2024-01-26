@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "description": "Answer a user's question from the Sales Chatbot client",
+  "execution_settings": {
+    "default": {
+      "max_tokens": 1000,
+      "temperature": 1.0,
+      "top_p": 0.5,
+      "presence_penalty": 0.0,
+      "frequency_penalty": 0.0
+    }
+  },
+  "input_variables": [
+    {
+      "name": "user_question",
+      "description": "The question from the user",
+      "required": true
+    },
+    {
+      "name": "context_docs",
+      "description": "Context text that is relevant to the user's question",
+      "required": false
+    }
+  ]
+}
