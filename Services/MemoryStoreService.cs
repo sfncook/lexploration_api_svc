@@ -16,13 +16,12 @@ public class MemoryStoreService
 {
     private readonly ISemanticTextMemory memory;
     private readonly PineconeMemoryStore pineconeMemory;
-    private readonly IMemoryStore asdf;
     private readonly HttpClient _httpClient;
+    string pineconeEnvironment = "gcp-starter";
+    string apiKey = "fcafedc4-cf32-4b4a-9d26-08fc227cf526";
 
     public MemoryStoreService()
     {
-        string pineconeEnvironment = "gcp-starter";
-        string apiKey = "fcafedc4-cf32-4b4a-9d26-08fc227cf526";
         PineconeClient pineconeClient = new PineconeClient(pineconeEnvironment, apiKey);
         pineconeMemory = new PineconeMemoryStore(pineconeClient);
 
@@ -40,7 +39,6 @@ public class MemoryStoreService
 
     public async Task Write() {
         const string MemoryCollectionName = "aboutMe";
-
         await memory.SaveInformationAsync(MemoryCollectionName, id: "info1", text: "My name is Andrea");
 
         // const string memoryCollectionName = "SKGitHub";
@@ -72,11 +70,6 @@ public class MemoryStoreService
         // }
     }
 
-    public async Task Read(string question) {
-        AzureOpenAIEmbeddings openAIEmbeddings = new AzureOpenAIEmbeddings();
-        float[] embeddings = await openAIEmbeddings.GetEmbeddingsAsync(question);
-        string embeddingsStr = string.Join(", ", embeddings);
-
         // curl -X POST "https://companies-x9v8jnv.svc.gcp-starter.pinecone.io/query" \
         // -H "Api-Key: fcafedc4-cf32-4b4a-9d26-08fc227cf526" \
         // -H 'Content-Type: application/json' \
@@ -88,74 +81,78 @@ public class MemoryStoreService
         //     "includeMetadata": true,
         //     "filter": {"genre": {"$eq": "action"}}
         // }'
+    public async Task<PineconeQueryResponse> Read(string question)
+    {
+        AzureOpenAIEmbeddings openAIEmbeddings = new AzureOpenAIEmbeddings();
+        float[] embeddings = await openAIEmbeddings.GetEmbeddingsAsync(question);
+        string embeddingsStr = string.Join(", ", embeddings);
 
         // var content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
-        string body = @"{""namespace"": ""saleschat_bot"",""vector"": [XXX],""topK"": 2,""includeValues"": true,""includeMetadata"": true,""filter"": {""genre"": {""$eq"": ""action""}}}";
+        string body = @"{""namespace"": ""saleschat_bot"",""vector"": [XXX],""topK"": 2,""includeValues"": false,""includeMetadata"": true}";
         body = body.Replace("XXX", embeddingsStr);
-        Console.WriteLine(body);
+        // Console.WriteLine(body);
         var content = new StringContent(body);
 
         // Replace HttpMethod.Get with HttpMethod.Post
         using (var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"https://companies-x9v8jnv.svc.gcp-starter.pinecone.io/query"))
         {
             requestMessage.Content = content;
-            requestMessage.Headers.Add("api-key", "fcafedc4-cf32-4b4a-9d26-08fc227cf526");
+            requestMessage.Headers.Add("api-key", apiKey);
 
             var response = await _httpClient.SendAsync(requestMessage);
             response.EnsureSuccessStatusCode();
 
             var responseString = await response.Content.ReadAsStringAsync();
-            Console.WriteLine(responseString);
-            // var embeddingsResponse = JsonConvert.DeserializeObject<EmbeddingsResponse>(responseString);
-
-            // return embeddingsResponse.data.FirstOrDefault()?.embedding;
+            // Console.WriteLine(responseString);
+            var embeddingsResponse = JsonConvert.DeserializeObject<PineconeQueryResponse>(responseString);
+            return embeddingsResponse;
         }
-
-        // string indexName = "companies";
-        // string indexNamespace = "blacktiecasinoevents";
-        // int limit = 5;
-        // IAsyncEnumerable<(MemoryRecord, double)> respPinecone = pineconeMemory.GetNearestMatchesFromNamespaceAsync(
-        //     indexName, 
-        //     indexNamespace, 
-        //     resp, // ReadOnlyMemory<float> embedding, 
-        //     limit 
-        //     // double minRelevanceScore = 0.0, 
-        //     // bool withEmbeddings = false, 
-        //     // [EnumeratorCancellation] CancellationToken cancellationToken = default(CancellationToken)
-        // );
-        // Console.WriteLine(respPinecone.ToString());
-
-        // const string memoryCollectionName = "SKGitHub";
-        // string ask = "I love Jupyter notebooks, how should I get started?";
-        // Console.WriteLine("===========================\n" +
-        //                     "Query: " + ask + "\n");
-
-        // var memories = memory.SearchAsync(memoryCollectionName, ask, limit: 5, minRelevanceScore: 0.77);
-
-        // var i = 0;
-        // await foreach (var memory in memories)
-        // {
-        //     Console.WriteLine($"Result {++i}:");
-        //     Console.WriteLine("  URL:     : " + memory.Metadata.Id);
-        //     Console.WriteLine("  Title    : " + memory.Metadata.Description);
-        //     Console.WriteLine("  Relevance: " + memory.Relevance);
-        //     Console.WriteLine();
-        // }
     }
 
-    // private class PcReqBody
     // {
-    //     // "namespace": "saleschat_bot",
-    //     // "vector": [0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3],
-    //     // "topK": 2,
-    //     // "": true,
-    //     // "": true,
-    //     // "filter": {"genre": {"$eq": "action"}}
-    //     public string Namespace { get; set; }
-    //     public float[] vector { get; set; }
-    //     public int topK { get; set; }
-    //     public bool includeValues { get; set; }
-    //     public bool includeMetadata { get; set; }
+    // "results": [],
+    // "matches": [
+    //     {
+    //         "id": "537fd751-3948-4c79-abd3-6e6bc9907765",
+    //         "score": 0.83706373,
+    //         "values": [],
+    //         "metadata": {
+    //             "salesbot": "Get started today and transform your website with our AI-powered Sales\nChatbot.\n\nGet Started\n\nCopyright © 2024 Sales Chatbot",
+    //             "source": "https://saleschat.bot/"
+    //         }
+    //     },
+    //     {
+    //         "id": "f24ea129-7e37-46b5-aa51-e77460175045",
+    //         "score": 0.836923659,
+    //         "values": [],
+    //         "metadata": {
+    //             "salesbot": "Get started today and transform your website with our AI-powered Sales\nChatbot.\n\nGet Started\n\nCopyright © 2024 Sales Chatbot",
+    //             "source": "https://saleschat.bot/#content"
+    //         }
+    //     }
+    // ],
+    // "namespace": "saleschat_bot",
+    // "usage": {
+    //     "readUnits": 6
     // }
+    // }
+
+    public class PineconeQueryResponse
+    {
+        public Match[] matches { get; set; }
+    }
+
+    public class Match
+    {
+        public string id { get; set; }
+        public float score { get; set; }
+        public Metadata metadata { get; set; }
+    }
+
+    public class Metadata
+    {
+        public string salesbot { get; set; }
+        public string source { get; set; }
+    }
 
 }

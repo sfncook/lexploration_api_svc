@@ -23,7 +23,7 @@ namespace SalesBotApi.Controllers
         [JwtAuthorize]
         public async Task<IActionResult> TestAi()
         {
-            await memoryStoreService.Read("ai chatbot");
+            var resp = await memoryStoreService.Read("How will you help my business grow?");
 
             // AzureOpenAIEmbeddings openAIEmbeddings = new AzureOpenAIEmbeddings();
             // float[] resp = await openAIEmbeddings.GetEmbeddingsAsync("casino party");
@@ -41,7 +41,7 @@ namespace SalesBotApi.Controllers
             // Response.Headers.Add("Access-Control-Allow-Origin", "*");
             // return Ok(await semanticKernelService.GetJoke());
 
-            return Ok();
+            return Ok(resp);
         }
     }
 }
