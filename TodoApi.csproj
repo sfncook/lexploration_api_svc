@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="Azure.Storage.Queues" Version="12.17.1" />
     <PackageReference Include="EntityFramework" Version="6.4.0" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.57" />
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.37.1" />
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.1.0" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.Pinecone" Version="1.2.0-alpha" />
