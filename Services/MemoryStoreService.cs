@@ -1,43 +1,17 @@
-using Microsoft.SemanticKernel.Memory;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.SemanticKernel.Connectors.Pinecone;
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Net.Http;
-using System.Linq;
 using System.Text;
-
-// Memory functionality is experimental
-#pragma warning disable SKEXP0003 // ISemanticTextMemory
-#pragma warning disable SKEXP0011 // WithAzureOpenAITextEmbeddingGeneration
-#pragma warning disable SKEXP0031 // Pinecone
+using System.Linq;
 
 public class MemoryStoreService
 {
-    private readonly ISemanticTextMemory memory;
-    private readonly PineconeMemoryStore pineconeMemory;
-    private readonly HttpClient _httpClient;
-    string pineconeEnvironment = "gcp-starter";
+    private readonly HttpClient _httpClient =  new HttpClient();
+    private readonly AzureOpenAIEmbeddings openAIEmbeddings = new AzureOpenAIEmbeddings();
     string apiKey = "fcafedc4-cf32-4b4a-9d26-08fc227cf526";
+    string pineconeHost = "https://companies-x9v8jnv.svc.gcp-starter.pinecone.io";
 
-    public MemoryStoreService()
-    {
-        PineconeClient pineconeClient = new PineconeClient(pineconeEnvironment, apiKey);
-        pineconeMemory = new PineconeMemoryStore(pineconeClient);
-
-        var memoryBuilder = new MemoryBuilder();
-        memoryBuilder.WithAzureOpenAITextEmbeddingGeneration(
-            "salesbot-text-embedding-ada-002",
-            "https://keli-chatbot.openai.azure.com/", 
-            "6b22e2a31df942ed92e0e283614882aa"
-        );
-        memoryBuilder.WithMemoryStore(pineconeMemory);
-        memory = memoryBuilder.Build();
-
-        _httpClient = new HttpClient();
-    }
 
         // curl -X POST "https://companies-x9v8jnv.svc.gcp-starter.pinecone.io/vectors/upsert" \
         // -H "Api-Key: fcafedc4-cf32-4b4a-9d26-08fc227cf526" \
@@ -123,7 +97,7 @@ public class MemoryStoreService
         // var content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
         string body = @"{""namespace"": ""ns1"",""vector"": [XXX],""topK"": 2,""includeValues"": false,""includeMetadata"": true}";
         body = body.Replace("XXX", embeddingsStr);
-        // Console.WriteLine(body);
+        Console.WriteLine(body);
         var content = new StringContent(body);
 
         // Replace HttpMethod.Get with HttpMethod.Post
@@ -142,33 +116,58 @@ public class MemoryStoreService
         }
     }
 
-    // {
-    // "results": [],
-    // "matches": [
-    //     {
-    //         "id": "537fd751-3948-4c79-abd3-6e6bc9907765",
-    //         "score": 0.83706373,
-    //         "values": [],
-    //         "metadata": {
-    //             "salesbot": "Get started today and transform your website with our AI-powered Sales\nChatbot.\n\nGet Started\n\nCopyright © 2024 Sales Chatbot",
-    //             "source": "https://saleschat.bot/"
-    //         }
-    //     },
-    //     {
-    //         "id": "f24ea129-7e37-46b5-aa51-e77460175045",
-    //         "score": 0.836923659,
-    //         "values": [],
-    //         "metadata": {
-    //             "salesbot": "Get started today and transform your website with our AI-powered Sales\nChatbot.\n\nGet Started\n\nCopyright © 2024 Sales Chatbot",
-    //             "source": "https://saleschat.bot/#content"
-    //         }
-    //     }
-    // ],
-    // "namespace": "saleschat_bot",
-    // "usage": {
-    //     "readUnits": 6
-    // }
-    // }
+    public async Task<string[]> GetRelevantContexts(string question, string companyId)
+    {
+        // TODO: Add latency metric
+        float[] vectorFloatArr = await openAIEmbeddings.GetEmbeddingsAsync(question);
+
+        PineconeQueryRequest req = new PineconeQueryRequest
+        {
+            @namespace = companyId,
+            vector = vectorFloatArr,
+            topK = 2,
+            includeValues = false,
+            includeMetadata = true
+        };
+
+        string body = JsonConvert.SerializeObject(req);
+        // Console.WriteLine(body);
+        var content = new StringContent(body, Encoding.UTF8, "application/json");
+
+        // TODO: Add latency metric
+        using (var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{pineconeHost}/query"))
+        {
+            requestMessage.Content = content;
+            requestMessage.Headers.Add("api-key", apiKey);
+
+            var response = await _httpClient.SendAsync(requestMessage);
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            // Console.WriteLine(responseString);
+            var embeddingsResponse = JsonConvert.DeserializeObject<PineconeQueryResponse>(responseString);
+            if (embeddingsResponse.matches == null) 
+            {
+                // Handle the scenario when matches is null
+                return Array.Empty<string>();
+            }
+
+            return embeddingsResponse.matches
+                .Where(match => match != null && match.metadata != null && match.metadata.salesbot != null)
+                .Select(match => match.metadata.salesbot)
+                .ToArray();
+
+        }
+    }
+
+    public class PineconeQueryRequest
+    {
+        public string @namespace { get; set; }
+        public float[] vector { get; set; }
+        public int topK { get; set; }
+        public bool includeValues { get; set; }
+        public bool includeMetadata { get; set; }
+    }
 
     public class PineconeQueryResponse
     {
@@ -187,21 +186,6 @@ public class MemoryStoreService
         public string salesbot { get; set; }
         public string source { get; set; }
     }
-
-
-    // -d '{
-    //     "vectors": [
-    //     {
-    //         "id": "vec1", 
-    //         "values": [],
-    //         "metadata": {
-    //             "salesbot": "We sell brown horses, but no other colors of horses.",
-    //             "source": "https://example.com"
-    //         }
-    //     },
-    //     ],
-    //     "namespace": "ns1"
-    // }'
 
     public class WriteRequest {
         public Vector[] vectors { get; set; }
