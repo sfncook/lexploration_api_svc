@@ -5,7 +5,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Kernel = Microsoft.SemanticKernel.Kernel;
 using System.IO;
-using System;
+
+// Memory functionality is experimental
+#pragma warning disable SKEXP0003, SKEXP0011, SKEXP0052
 
 public class SemanticKernelService
 {

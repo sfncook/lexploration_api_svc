@@ -33,6 +33,7 @@ namespace SalesBotApi
             services.AddSingleton<SharedQueriesService>();
             services.AddSingleton<JwtService>();
             services.AddSingleton<SemanticKernelService>();
+            services.AddSingleton<MemoryStoreService>();
             services.AddCors(options =>
                 {
                     options.AddPolicy("AllowSpecificOrigin",
