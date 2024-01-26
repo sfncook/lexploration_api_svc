@@ -10,11 +10,17 @@ namespace SalesBotApi.Controllers
     {
         private readonly SemanticKernelService semanticKernelService;
         private readonly MemoryStoreService memoryStoreService;
+        private readonly AzureOpenAIEmbeddings azureOpenAIEmbeddings;
 
-        public AiController(SemanticKernelService _semanticKernelService, MemoryStoreService _memoryStoreService)
+        public AiController(
+            SemanticKernelService _semanticKernelService, 
+            MemoryStoreService _memoryStoreService,
+            AzureOpenAIEmbeddings _azureOpenAIEmbeddings
+        )
         {
             semanticKernelService = _semanticKernelService;
             memoryStoreService = _memoryStoreService;
+            azureOpenAIEmbeddings = _azureOpenAIEmbeddings;
         }
 
         // *** ROOT ADMIN ***
@@ -23,25 +29,16 @@ namespace SalesBotApi.Controllers
         [JwtAuthorize]
         public async Task<IActionResult> TestAi()
         {
-            var resp = await memoryStoreService.Read("How will you help my business grow?");
+            // Query vector db
+            // var resp = await memoryStoreService.Read("What is my name?");
+            
+            // Upsert to vector db
+            await memoryStoreService.Write("My name is Shawn", "https://example.com");
 
-            // AzureOpenAIEmbeddings openAIEmbeddings = new AzureOpenAIEmbeddings();
-            // float[] resp = await openAIEmbeddings.GetEmbeddingsAsync("casino party");
+            // string content = "We sell brown horses, but no other colors of horses.";
+            // var resp = await azureOpenAIEmbeddings.GetEmbeddingsAsync(content);
 
-            // AzureOpenAIEmbeddings azureOpenAIEmbeddings = new AzureOpenAIEmbeddings();
-            // var resp = await azureOpenAIEmbeddings.GetEmbeddingsAsync("Hello world");
-            // JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
-            // if(userData.role != "root") {
-            //     return Unauthorized();
-            // }
-
-            // await memoryStoreService.Write();
-            // await memoryStoreService.Read();
-
-            // Response.Headers.Add("Access-Control-Allow-Origin", "*");
-            // return Ok(await semanticKernelService.GetJoke());
-
-            return Ok(resp);
+            return Ok();
         }
     }
 }

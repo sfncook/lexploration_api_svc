@@ -34,6 +34,7 @@ namespace SalesBotApi
             services.AddSingleton<JwtService>();
             services.AddSingleton<SemanticKernelService>();
             services.AddSingleton<MemoryStoreService>();
+            services.AddSingleton<AzureOpenAIEmbeddings>();
             services.AddCors(options =>
                 {
                     options.AddPolicy("AllowSpecificOrigin",
