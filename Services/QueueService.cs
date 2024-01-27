@@ -1,4 +1,5 @@
 using Azure.Storage.Queues;
+using Azure.Storage.Queues.Models;
 using Newtonsoft.Json;
 using SalesBotApi.Models;
 using System;
@@ -14,7 +15,7 @@ public class QueueService
     {
         scrapeLinksQueueClient = new QueueClient(
             "DefaultEndpointsProtocol=https;AccountName=kelichatbot2;AccountKey=IgE1pLaUd5b+JOftL5wGogI1lnEQa0FoYK31yPeNwzcOeboqktRV7xntaEh8APmT+sXpX7niYIfC+AStHRnN3A==;EndpointSuffix=core.windows.net",
-            "scrape-links"
+            "scrape-links-dev"
         );
         scrapeLinksQueueClient.CreateIfNotExists();
 
@@ -33,6 +34,23 @@ public class QueueService
 
         var bytes = Encoding.UTF8.GetBytes(message);
         await scrapeLinksQueueClient.SendMessageAsync(Convert.ToBase64String(bytes));
+    }
+
+    public async Task<QueueMessage> GetScrapLinksMessageAsync()
+    {
+        QueueMessage[] retrievedMessage = await scrapeLinksQueueClient.ReceiveMessagesAsync(maxMessages: 1);
+        if (retrievedMessage.Length > 0)
+        {
+            var message = retrievedMessage[0];
+            return message;
+        }
+
+        return null;
+    }
+
+    public async Task DeleteScrapLinksMessageAsync(QueueMessage message)
+    {
+        await scrapeLinksQueueClient.DeleteMessageAsync(message.MessageId, message.PopReceipt);
     }
 
     public async Task EnqueueSendEmailMessageAsync(EmailRequest emailRequest)

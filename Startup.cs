@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using SalesBotApi.Models;
+using Microsoft.Azure.Storage;
 
 namespace SalesBotApi
 {
@@ -21,6 +22,7 @@ namespace SalesBotApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddLogging();
             services.AddControllers();
 
             services.AddSwaggerGen(c =>
@@ -36,6 +38,8 @@ namespace SalesBotApi
             services.AddSingleton<MemoryStoreService>();
             services.AddSingleton<AzureOpenAIEmbeddings>();
             services.AddSingleton<WebpageProcessor>();
+            services.AddHostedService<QueueBackgroundService>();
+
             services.AddCors(options =>
                 {
                     options.AddPolicy("AllowSpecificOrigin",

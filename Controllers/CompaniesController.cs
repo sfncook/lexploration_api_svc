@@ -6,6 +6,7 @@ using SalesBotApi.Models;
 using Microsoft.Azure.Cosmos;
 using System;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 
 namespace SalesBotApi.Controllers
 {
@@ -16,9 +17,13 @@ namespace SalesBotApi.Controllers
         private readonly Container companiesContainer;
         private readonly Container usersContainer;
         private readonly Container chatbotsContainer;
+        private readonly ILogger<CompaniesController> logger;
 
-        public CompaniesController(CosmosDbService cosmosDbService)
+        public CompaniesController(
+            CosmosDbService cosmosDbService, ILogger<CompaniesController> _logger
+            )
         {
+            logger = _logger;
             companiesContainer = cosmosDbService.CompaniesContainer;
             usersContainer = cosmosDbService.UsersContainer;
             chatbotsContainer = cosmosDbService.ChatbotsContainer;
@@ -40,6 +45,7 @@ namespace SalesBotApi.Controllers
         [HttpGet("client")]
         public async Task<ActionResult<Company>> GetCompaniesNoAuth([FromQuery] string company_id)
         {
+            logger.LogInformation($"GetCompaniesNoAuth {company_id}");
             if (company_id == null)
             {
                 return BadRequest("Missing company_id parameter");
