@@ -4,14 +4,25 @@ using System.Threading;
 using System.Threading.Tasks;
 using Azure.Storage.Queues.Models;
 using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json;
+using SalesBotApi.Models;
 
 public class QueueBackgroundService : BackgroundService
 {
     private readonly QueueService queueService;
+    private readonly WebpageProcessor webpageProcessor;
+    private readonly MemoryStoreService memoryStoreService;
 
-    public QueueBackgroundService(QueueService _queueService)
+
+    public QueueBackgroundService(
+        QueueService _queueService, 
+        WebpageProcessor _webpageProcessor,
+        MemoryStoreService _memoryStoreService
+    )
     {
         queueService = _queueService;
+        webpageProcessor = _webpageProcessor;
+        memoryStoreService = _memoryStoreService;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -37,12 +48,20 @@ public class QueueBackgroundService : BackgroundService
         }
     }
 
-    private void ProcessMessage(QueueMessage message)
+    private async void ProcessMessage(QueueMessage message)
     {
         Console.WriteLine("ProcessMessage");
-        Console.WriteLine(message.MessageText);
         var base64EncodedBytes = Convert.FromBase64String(message.MessageText);
         var decodedMessage = Encoding.UTF8.GetString(base64EncodedBytes);
         Console.WriteLine(decodedMessage);
+        var link = JsonConvert.DeserializeObject<Link>(decodedMessage);
+        // Console.WriteLine(link.id);
+        // Console.WriteLine(link.link);
+        // Console.WriteLine(link.company_id);
+        string[] chunks = await webpageProcessor.GetTextChunksFromUrlAsync(link.link, 1000);
+        foreach (string chunk in chunks)
+        {
+            await memoryStoreService.Write(chunk, link.link, link.company_id);
+        }
     }
 }

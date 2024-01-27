@@ -10,8 +10,8 @@ public class MemoryStoreService
 {
     private readonly HttpClient _httpClient =  new HttpClient();
     private readonly AzureOpenAIEmbeddings openAIEmbeddings = new AzureOpenAIEmbeddings();
-    string apiKey = "fcafedc4-cf32-4b4a-9d26-08fc227cf526";
-    string pineconeHost = "https://companies-x9v8jnv.svc.gcp-starter.pinecone.io";
+    string apiKey = "fa3b5160-cb16-4959-bef9-7b46cbe8c80f";
+    string pineconeHost = "https://companies-dev-s1ptuxy.svc.apw5-4e34-81fa.pinecone.io";
 
 
         // curl -X POST "https://companies-x9v8jnv.svc.gcp-starter.pinecone.io/vectors/upsert" \
@@ -30,16 +30,16 @@ public class MemoryStoreService
         //     ],
         //     "namespace": "ns1"
         // }'
-    public async Task Write(string documentStr, string source) {
+    public async Task<string> Write(string documentStr, string url, string company_id) {
         AzureOpenAIEmbeddings openAIEmbeddings = new AzureOpenAIEmbeddings();
         float[] vectorFltAr = await openAIEmbeddings.GetEmbeddingsAsync(documentStr);
         // string vectorStr = string.Join(", ", vectorFltAr);
 
-        string id = "vec2";
+        string id = Guid.NewGuid().ToString();
         Metadata metadata = new Metadata
         {
             salesbot = documentStr,
-            source = source
+            source = url
         };
 
         Vector vector = new Vector
@@ -55,7 +55,7 @@ public class MemoryStoreService
         WriteRequest writeRequest = new WriteRequest
         {
             vectors = vectors,
-            @namespace = "ns1"
+            @namespace = company_id
         };
 
         // {"vectors":[{"id":"vec2","values":[],"metadata":{"salesbot":"My name is Shawn","source":"https://example.com"}}]}
@@ -63,7 +63,7 @@ public class MemoryStoreService
         Console.WriteLine(body);
         var content = new StringContent(body, Encoding.UTF8, "application/json");
 
-        using (var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"https://companies-x9v8jnv.svc.gcp-starter.pinecone.io/vectors/upsert"))
+        using (var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{pineconeHost}/vectors/upsert"))
         {
             requestMessage.Content = content;
             requestMessage.Headers.Add("api-key", apiKey);
@@ -73,8 +73,7 @@ public class MemoryStoreService
 
             var responseString = await response.Content.ReadAsStringAsync();
             Console.WriteLine(responseString);
-            // var embeddingsResponse = JsonConvert.DeserializeObject<PineconeQueryResponse>(responseString);
-            // return embeddingsResponse;
+            return id;
         }
     }
 
