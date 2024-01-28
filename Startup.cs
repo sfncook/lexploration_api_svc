@@ -7,6 +7,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using SalesBotApi.Models;
 using Microsoft.Azure.Storage;
+using Microsoft.AspNetCore.Diagnostics;
+using System;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace SalesBotApi
 {
@@ -53,7 +57,7 @@ namespace SalesBotApi
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILogger<Startup> logger)
         {
             // Enable middleware to serve generated Swagger as a JSON endpoint.
             app.UseSwagger();
@@ -81,6 +85,24 @@ namespace SalesBotApi
             app.UseRouting();
 
             app.UseAuthorization();
+
+            app.UseExceptionHandler(appBuilder =>
+            {
+                appBuilder.Run(async context =>
+                {
+                    var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
+                    if (exceptionHandlerPathFeature?.Error is Exception ex)
+                    {
+                        // Log the exception
+                        logger.LogError(ex, "Unhandled exception occurred.");
+                        
+                        // Respond with a generic error message
+                        context.Response.StatusCode = 500;
+                        await context.Response.WriteAsync("An unexpected fault happened. Try again later.");
+                    }
+                });
+            });
+
 
             app.UseEndpoints(endpoints =>
             {

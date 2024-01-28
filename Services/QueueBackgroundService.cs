@@ -50,7 +50,7 @@ public class QueueBackgroundService : BackgroundService
                     Console.WriteLine(ex.ToString());
                 }
             }
-            await Task.Delay(1000);
+            await Task.Delay(10000);
         }
     }
 
