@@ -13,7 +13,7 @@ public class SemanticKernelService
 {
     private readonly ILoggerFactory myLoggerFactory = NullLoggerFactory.Instance;
     private readonly Kernel kernel;
-    private readonly KernelPlugin salesBotPluginFunctions;
+    // private readonly KernelPlugin salesBotPluginFunctions;
 
     public SemanticKernelService(IWebHostEnvironment env)
     {
@@ -27,19 +27,21 @@ public class SemanticKernelService
                 "6b22e2a31df942ed92e0e283614882aa"
             )
             ;
-        var userQuestionPluginDirectoryPath = Path.Combine(env.ContentRootPath, "Plugins", "SalesBot");
+        // var userQuestionPluginDirectoryPath = Path.Combine(env.ContentRootPath, "Plugins", "SalesBot");
         kernel = builder.Build();
-        salesBotPluginFunctions = kernel.ImportPluginFromPromptDirectory(userQuestionPluginDirectoryPath);
+        // salesBotPluginFunctions = kernel.ImportPluginFromPromptDirectory(userQuestionPluginDirectoryPath);
     }
 
     public async Task<string> SubmitUserQuestion(string userQuestion, string[] contextDocs)
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
-        var arguments = new KernelArguments() { 
-            ["user_question"] = userQuestion,
-            ["context_docs"] = contextDocs
-        };
-        var result = await kernel.InvokeAsync(salesBotPluginFunctions["UserQuestion"], arguments);
+        // var arguments = new KernelArguments() { 
+        //     ["user_question"] = userQuestion,
+        //     ["context_docs"] = contextDocs
+        // };
+        // var result = await kernel.InvokeAsync(salesBotPluginFunctions["UserQuestion"], arguments);
+        string prompt = $"Say the words 'foo bar' to me.";
+        var result = await kernel.InvokePromptAsync(prompt);
         stopwatch.Stop();
         Console.WriteLine($"SubmitUserQuestion: {stopwatch.ElapsedMilliseconds} ms");
         return result.ToString();
