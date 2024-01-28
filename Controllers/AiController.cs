@@ -25,33 +25,31 @@ namespace SalesBotApi.Controllers
             sharedQueriesService = _sharedQueriesService;
         }
 
-        // POST: api/ai/submit_user_quesiton
-        [HttpPost("submit_user_quesiton")]
+        // POST: api/ai/submit_user_question
+        [HttpPost("submit_user_question")]
         public async Task<IActionResult> SubmitUserQuestion(
             [FromBody] SubmitRequest req,
             [FromQuery] string companyid,
             [FromQuery] string convoid
         )
         {
-            // if(req==null || req.user_question==null){
-            //     return BadRequest();
-            // }
+            if(req==null || req.user_question==null){
+                return BadRequest();
+            }
 
 
-            // Company company = null;
-            // Conversation convo = null;
-            // Chatbot chatbot = null;
-            // try{
-            //     company = await sharedQueriesService.GetCompanyById(companyid);
-            //     // convo = await sharedQueriesService.GetConversationById(convoid);
-            //     // chatbot = await sharedQueriesService.GetFirstChatbotByCompanyId(companyid);
-            // }
-            // catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-            // {
-            //     return NotFound();
-            // }
-            return Ok();
-
+            Company company = null;
+            Conversation convo = null;
+            Chatbot chatbot = null;
+            try{
+                company = await sharedQueriesService.GetCompanyById(companyid);
+                convo = await sharedQueriesService.GetConversationById(convoid);
+                chatbot = await sharedQueriesService.GetFirstChatbotByCompanyId(companyid);
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return NotFound();
+            }
 
             // TODO: Add metric many contextDocs by company(?)
             float[] vector = await memoryStoreService.GetVector(req.user_question);

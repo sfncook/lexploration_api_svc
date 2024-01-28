@@ -57,9 +57,22 @@ public class SharedQueriesService
 
     public async Task<Company> GetCompanyById(string company_id)
     {
-        var partitionKeyValue = new PartitionKey(company_id);
-        var response = await conversationsContainer.ReadItemAsync<Company>(company_id, partitionKeyValue);
-        return response.Resource;
+        string sqlQueryText;
+        if (company_id == "all") sqlQueryText = $"SELECT * FROM c";
+        else sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
+
+        QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+
+        Company company = null;
+        using (FeedIterator<Company> feedIterator = chatbotsContainer.GetItemQueryIterator<Company>(queryDefinition))
+        {
+            while (feedIterator.HasMoreResults)
+            {
+                FeedResponse<Company> response = await feedIterator.ReadNextAsync();
+                company = response.FirstOrDefault();
+            }
+        }
+        return company;
     }
 
     public async Task<IEnumerable<Chatbot>> GetChatbotsByCompanyId(string company_id)
