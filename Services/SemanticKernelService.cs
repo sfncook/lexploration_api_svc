@@ -9,6 +9,9 @@ using System;
 using Microsoft.AspNetCore.Hosting;
 using SalesBotApi.Models;
 using System.Collections.Generic;
+using Plugins;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.ChatCompletion;
 
 public class SemanticKernelService
 {
@@ -27,6 +30,7 @@ public class SemanticKernelService
                 "6b22e2a31df942ed92e0e283614882aa"
             )
             ;
+        builder.Plugins.AddFromType<MathPlugin>();
         kernel = builder.Build();
     }
 
@@ -39,21 +43,52 @@ public class SemanticKernelService
         IEnumerable<Refinement> refinements
     )
     {
-        Stopwatch stopwatch = Stopwatch.StartNew();
-        PromptBuilder promptBuilder = new PromptBuilder();
-        promptBuilder.setUserQuestion(userQuestion);
-        promptBuilder.setCompany(company);
-        promptBuilder.setChatbot(chatbot);
-        promptBuilder.setContextDocs(contextDocs);
-        promptBuilder.setConversation(convo);
-        string prompt = promptBuilder.build();
-        Console.WriteLine(prompt);
+        // Enable auto function calling
+        OpenAIPromptExecutionSettings openAIPromptExecutionSettings = new()
+        {
+            ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
+        };
 
-        var result = await kernel.InvokePromptAsync(prompt);
+        // Get the response from the AI
+        ChatHistory history = new ChatHistory();
+        history.AddUserMessage("What is the square root of 24?");
+        IChatCompletionService chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
+        var result = chatCompletionService.GetStreamingChatMessageContentsAsync(
+            history,
+            executionSettings: openAIPromptExecutionSettings,
+            kernel: kernel);
 
-        stopwatch.Stop();
-        Console.WriteLine($"SubmitUserQuestion: {stopwatch.ElapsedMilliseconds} ms");
-        return result.ToString();
+        // Stream the results
+        string fullMessage = "";
+        var first = true;
+        await foreach (var content in result)
+        {
+            if (content.Role.HasValue && first)
+            {
+                Console.Write("Assistant > ");
+                first = false;
+            }
+            Console.Write(content.Content);
+            fullMessage += content.Content;
+        }
+        Console.WriteLine(fullMessage);
+        return fullMessage;
+
+        // Stopwatch stopwatch = Stopwatch.StartNew();
+        // PromptBuilder promptBuilder = new PromptBuilder();
+        // promptBuilder.setUserQuestion(userQuestion);
+        // promptBuilder.setCompany(company);
+        // promptBuilder.setChatbot(chatbot);
+        // promptBuilder.setContextDocs(contextDocs);
+        // promptBuilder.setConversation(convo);
+        // string prompt = promptBuilder.build();
+        // Console.WriteLine(prompt);
+
+        // var result = await kernel.InvokePromptAsync(prompt);
+
+        // stopwatch.Stop();
+        // Console.WriteLine($"SubmitUserQuestion: {stopwatch.ElapsedMilliseconds} ms");
+        // return result.ToString();
     }
 
 }
