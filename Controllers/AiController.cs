@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using System;
+using SalesBotApi.Models;
+using Microsoft.Azure.Cosmos;
 
 namespace SalesBotApi.Controllers
 {
@@ -27,18 +29,28 @@ namespace SalesBotApi.Controllers
         [HttpPost("submit_user_quesiton")]
         public async Task<IActionResult> SubmitUserQuestion(
             [FromBody] SubmitRequest req,
-            [FromQuery] string companyid
+            [FromQuery] string companyid,
+            [FromQuery] string convoid
         )
         {
-            if(req==null || req.user_question==null){
-                return BadRequest();
-            }
+            // if(req==null || req.user_question==null){
+            //     return BadRequest();
+            // }
 
-            // Company company = await sharedQueriesService.GetCompanyById(companyid);
-            // Conversation convo = await sharedQueriesService.GetConversationById(convoid);
-            // if(company==null || convo==null) {
+
+            // Company company = null;
+            // Conversation convo = null;
+            // Chatbot chatbot = null;
+            // try{
+            //     company = await sharedQueriesService.GetCompanyById(companyid);
+            //     // convo = await sharedQueriesService.GetConversationById(convoid);
+            //     // chatbot = await sharedQueriesService.GetFirstChatbotByCompanyId(companyid);
+            // }
+            // catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            // {
             //     return NotFound();
             // }
+            return Ok();
 
 
             // TODO: Add metric many contextDocs by company(?)
@@ -47,7 +59,7 @@ namespace SalesBotApi.Controllers
             Console.WriteLine($"contextDocs:{contextDocs.Length}");
             Console.WriteLine(string.Join("','", contextDocs));
 
-            string resp = await semanticKernelService.SubmitUserQuestion(req.user_question, contextDocs);
+            string resp = await semanticKernelService.SubmitUserQuestion(req.user_question, contextDocs, company, convo, chatbot);
 
             return Ok(resp);
         }

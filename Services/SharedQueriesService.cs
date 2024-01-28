@@ -82,5 +82,25 @@ public class SharedQueriesService
         return chatbots;
     }
 
+    public async Task<Chatbot> GetFirstChatbotByCompanyId(string company_id)
+    {
+        string sqlQueryText;
+        if (company_id == "all") sqlQueryText = $"SELECT * FROM c";
+        else sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
+
+        QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+
+        Chatbot chatbot = null;
+        using (FeedIterator<Chatbot> feedIterator = chatbotsContainer.GetItemQueryIterator<Chatbot>(queryDefinition))
+        {
+            while (feedIterator.HasMoreResults)
+            {
+                FeedResponse<Chatbot> response = await feedIterator.ReadNextAsync();
+                chatbot = response.FirstOrDefault();
+            }
+        }
+        return chatbot;
+    }
+
 }
 
