@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Kernel = Microsoft.SemanticKernel.Kernel;
-using System.Diagnostics;
 using System;
 using Microsoft.AspNetCore.Hosting;
 using SalesBotApi.Models;
@@ -30,7 +29,7 @@ public class SemanticKernelService
                 "6b22e2a31df942ed92e0e283614882aa"
             )
             ;
-        builder.Plugins.AddFromType<MathPlugin>();
+        builder.Plugins.AddFromType<FormatAssistantResponsePlugin>();
         kernel = builder.Build();
     }
 
@@ -46,12 +45,21 @@ public class SemanticKernelService
         // Enable auto function calling
         OpenAIPromptExecutionSettings openAIPromptExecutionSettings = new()
         {
-            ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
+            ToolCallBehavior = ToolCallBehavior.EnableKernelFunctions
         };
 
         // Get the response from the AI
         ChatHistory history = new ChatHistory();
-        history.AddUserMessage("What is the square root of 24?");
+        PromptBuilder promptBuilder = new PromptBuilder();
+        promptBuilder.setUserQuestion(userQuestion);
+        promptBuilder.setCompany(company);
+        promptBuilder.setChatbot(chatbot);
+        promptBuilder.setContextDocs(contextDocs);
+        promptBuilder.setConversation(convo);
+        string prompt = promptBuilder.build();
+        Console.WriteLine(prompt);
+        history.AddSystemMessage(prompt);
+        history.AddUserMessage("Hello my name is shawn");
         IChatCompletionService chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
         var result = chatCompletionService.GetStreamingChatMessageContentsAsync(
             history,
@@ -71,7 +79,6 @@ public class SemanticKernelService
             Console.Write(content.Content);
             fullMessage += content.Content;
         }
-        Console.WriteLine(fullMessage);
         return fullMessage;
 
         // Stopwatch stopwatch = Stopwatch.StartNew();

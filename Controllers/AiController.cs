@@ -4,6 +4,9 @@ using System;
 using SalesBotApi.Models;
 using Microsoft.Azure.Cosmos;
 using System.Collections.Generic;
+using static OpenAiHttpRequestService;
+using System.Reflection.Metadata.Ecma335;
+using System.Linq;
 
 namespace SalesBotApi.Controllers
 {
@@ -11,17 +14,17 @@ namespace SalesBotApi.Controllers
     [ApiController]
     public class AiController : Controller
     {
-        private readonly SemanticKernelService semanticKernelService;
+        private readonly OpenAiHttpRequestService openAiHttpRequestService;
         private readonly MemoryStoreService memoryStoreService;
         private readonly SharedQueriesService sharedQueriesService;
 
         public AiController(
-            SemanticKernelService _semanticKernelService, 
+            OpenAiHttpRequestService _openAiHttpRequestService, 
             MemoryStoreService _memoryStoreService,
             SharedQueriesService _sharedQueriesService
         )
         {
-            semanticKernelService = _semanticKernelService;
+            openAiHttpRequestService = _openAiHttpRequestService;
             memoryStoreService = _memoryStoreService;
             sharedQueriesService = _sharedQueriesService;
         }
@@ -42,6 +45,7 @@ namespace SalesBotApi.Controllers
             Company company = null;
             Conversation convo = null;
             Chatbot chatbot = null;
+            IEnumerable<Models.Message> messages = null;
             IEnumerable<Refinement> refinements = null;
             float[] vector = null;
 
@@ -51,6 +55,7 @@ namespace SalesBotApi.Controllers
                 var convoTask = sharedQueriesService.GetConversationById(convoid);
                 var chatbotTask = sharedQueriesService.GetFirstChatbotByCompanyId(companyid);
                 var refinementsTask = sharedQueriesService.GetRefinementsByCompanyId(companyid);
+                var msgsTask = sharedQueriesService.GetRecentMsgsForConvo(convoid);
                 var vectorTask = memoryStoreService.GetVector(req.user_question);
 
                 await Task.WhenAll(companyTask, convoTask, chatbotTask, vectorTask);
@@ -59,6 +64,7 @@ namespace SalesBotApi.Controllers
                 company = await companyTask;
                 convo = await convoTask;
                 chatbot = await chatbotTask;
+                messages = await msgsTask;
                 refinements = await refinementsTask;
                 vector = await vectorTask;
             }
@@ -72,14 +78,64 @@ namespace SalesBotApi.Controllers
             Console.WriteLine($"contextDocs:{contextDocs.Length}");
             Console.WriteLine(string.Join("','", contextDocs));
 
-            string resp = await semanticKernelService.SubmitUserQuestion(req.user_question, contextDocs, company, convo, chatbot, refinements);
+            GptMessage[] gptMessages = convertCosmosMessagesToGptFormat(messages);
 
-            return Ok(resp);
+            ChatCompletionResponse chatCompletionResponse = await openAiHttpRequestService.SubmitUserQuestion(
+                req.user_question, 
+                contextDocs, 
+                company, 
+                convo, 
+                chatbot, 
+                refinements,
+                gptMessages
+            );
+
+            return Ok(chatCompletionResponse);
+        }
+
+        // def convert_cosmos_messages_to_gpt_format(messages):
+        // converted_messages = []
+
+        // for message in messages:
+        //     user_message = {
+        //         "role": "user",
+        //         "content": message["user_msg"]
+        //     }
+        //     assistant_message = {
+        //         "role": "assistant",
+        //         "content": message["assistant_response"]
+        //     }
+
+        //     converted_messages.append(user_message)
+        //     converted_messages.append(assistant_message)
+
+        // return converted_messages
+        private GptMessage[] convertCosmosMessagesToGptFormat(IEnumerable<Models.Message> messages) {
+            GptMessage[] gptMessages = new GptMessage[messages.Count() *2];
+            foreach(Models.Message msg in messages){
+                GptMessage usrMsg = new GptMessage{
+                    role = "role",
+                    content = msg.user_msg
+                };
+                GptMessage assistantMsg = new GptMessage{
+                    role = "assistant",
+                    content = msg.assistant_response
+                };
+                gptMessages.Append(usrMsg);
+                gptMessages.Append(assistantMsg);
+            }
+            return gptMessages;
         }
     }
+    
 
     public class SubmitRequest {
         public string user_question { get; set; }
         public bool mute { get; set; }
+    }
+
+    public class GptMessage {
+        public string role { get; set; }
+        public string content { get; set; }
     }
 }

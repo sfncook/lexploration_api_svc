@@ -40,6 +40,7 @@ namespace SalesBotApi
             services.AddSingleton<SharedQueriesService>();
             services.AddSingleton<JwtService>();
             services.AddSingleton<SemanticKernelService>();
+            services.AddSingleton<OpenAiHttpRequestService>();
             services.AddSingleton<MemoryStoreService>();
             services.AddSingleton<AzureOpenAIEmbeddings>();
             services.AddSingleton<WebpageProcessor>();

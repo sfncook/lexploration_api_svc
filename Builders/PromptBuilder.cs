@@ -63,6 +63,7 @@ Here is some context relevant: {context_docs}
 +++++
 User Question: ""{user_question}""
 +++++
+You should ALWAYS ALWAYS ALWAYS call the AssistantResponseToJson function with to format your response.
     ";
 
     public string build() {

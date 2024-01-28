@@ -50,6 +50,24 @@ public class SharedQueriesService
         return response.Resource;
     }
 
+    public async Task<IEnumerable<Message>> GetRecentMsgsForConvo(string convo_id)
+    {
+        string sqlQueryText = $"SELECT TOP 10 * FROM m WHERE m.conversation_id = '{convo_id}' ORDER BY m._ts DESC";
+
+        QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+
+        List<Message> messages = new List<Message>();
+        using (FeedIterator<Message> feedIterator = messagesContainer.GetItemQueryIterator<Message>(queryDefinition))
+        {
+            while (feedIterator.HasMoreResults)
+            {
+                FeedResponse<Message> response = await feedIterator.ReadNextAsync();
+                messages.AddRange(response.ToList());
+            }
+        }
+        return messages;
+    }
+
     public async Task<Conversation> GetConversationById(string convo_id)
     {
         var partitionKeyValue = new PartitionKey(convo_id);
