@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System;
 using SalesBotApi.Models;
 using Microsoft.Azure.Cosmos;
+using System.Collections.Generic;
 
 namespace SalesBotApi.Controllers
 {
@@ -41,6 +42,7 @@ namespace SalesBotApi.Controllers
             Company company = null;
             Conversation convo = null;
             Chatbot chatbot = null;
+            IEnumerable<Refinement> refinements = null;
             float[] vector = null;
 
             try
@@ -48,6 +50,7 @@ namespace SalesBotApi.Controllers
                 var companyTask = sharedQueriesService.GetCompanyById(companyid);
                 var convoTask = sharedQueriesService.GetConversationById(convoid);
                 var chatbotTask = sharedQueriesService.GetFirstChatbotByCompanyId(companyid);
+                var refinementsTask = sharedQueriesService.GetRefinementsByCompanyId(companyid);
                 var vectorTask = memoryStoreService.GetVector(req.user_question);
 
                 await Task.WhenAll(companyTask, convoTask, chatbotTask, vectorTask);
@@ -56,6 +59,7 @@ namespace SalesBotApi.Controllers
                 company = await companyTask;
                 convo = await convoTask;
                 chatbot = await chatbotTask;
+                refinements = await refinementsTask;
                 vector = await vectorTask;
             }
             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -68,7 +72,7 @@ namespace SalesBotApi.Controllers
             Console.WriteLine($"contextDocs:{contextDocs.Length}");
             Console.WriteLine(string.Join("','", contextDocs));
 
-            string resp = await semanticKernelService.SubmitUserQuestion(req.user_question, contextDocs, company, convo, chatbot);
+            string resp = await semanticKernelService.SubmitUserQuestion(req.user_question, contextDocs, company, convo, chatbot, refinements);
 
             return Ok(resp);
         }

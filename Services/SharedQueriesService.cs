@@ -13,6 +13,7 @@ public class SharedQueriesService
     private readonly Container linksContainer;
     private readonly Container messagesContainer;
     private readonly Container usersContainer;
+    private readonly Container refinementsContainer;
 
     public SharedQueriesService(CosmosDbService cosmosDbService)
     {
@@ -22,6 +23,7 @@ public class SharedQueriesService
         linksContainer = cosmosDbService.LinksContainer;
         messagesContainer = cosmosDbService.MessagesContainer;
         usersContainer = cosmosDbService.UsersContainer;
+        refinementsContainer = cosmosDbService.RefinementsContainer;
     }
 
     public async Task<IEnumerable<T>> GetAllItems<T>(Container container)
@@ -113,6 +115,26 @@ public class SharedQueriesService
             }
         }
         return chatbot;
+    }
+
+    public async Task<IEnumerable<Refinement>> GetRefinementsByCompanyId(string company_id)
+    {
+        string sqlQueryText;
+        if (company_id == "all") sqlQueryText = $"SELECT * FROM c";
+        else sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
+
+        QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+
+        List<Refinement> refinements = new List<Refinement>();
+        using (FeedIterator<Refinement> feedIterator = refinementsContainer.GetItemQueryIterator<Refinement>(queryDefinition))
+        {
+            while (feedIterator.HasMoreResults)
+            {
+                FeedResponse<Refinement> response = await feedIterator.ReadNextAsync();
+                refinements.AddRange(response.ToList());
+            }
+        }
+        return refinements;
     }
 
 }
