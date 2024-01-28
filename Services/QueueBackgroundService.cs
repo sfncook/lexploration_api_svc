@@ -1,8 +1,11 @@
 using System;
+using System.Diagnostics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Storage.Queues.Models;
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using SalesBotApi.Models;
@@ -12,17 +15,20 @@ public class QueueBackgroundService : BackgroundService
     private readonly QueueService queueService;
     private readonly WebpageProcessor webpageProcessor;
     private readonly MemoryStoreService memoryStoreService;
+    private readonly TelemetryClient telemetryClient;
 
 
     public QueueBackgroundService(
         QueueService _queueService, 
         WebpageProcessor _webpageProcessor,
-        MemoryStoreService _memoryStoreService
+        MemoryStoreService _memoryStoreService,
+        TelemetryClient _telemetryClient
     )
     {
         queueService = _queueService;
         webpageProcessor = _webpageProcessor;
         memoryStoreService = _memoryStoreService;
+        telemetryClient = _telemetryClient;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -50,6 +56,7 @@ public class QueueBackgroundService : BackgroundService
 
     private async void ProcessMessage(QueueMessage message)
     {
+        var stopwatch = Stopwatch.StartNew();
         Console.WriteLine("ProcessMessage");
         var base64EncodedBytes = Convert.FromBase64String(message.MessageText);
         var decodedMessage = Encoding.UTF8.GetString(base64EncodedBytes);
@@ -63,5 +70,12 @@ public class QueueBackgroundService : BackgroundService
         {
             await memoryStoreService.Write(chunk, link.link, link.company_id);
         }
+        stopwatch.Stop();
+        telemetryClient.TrackMetric("links_scrape_ms", stopwatch.Elapsed.TotalMilliseconds);
+        telemetryClient.TrackMetric(new MetricTelemetry("LinkScrape", stopwatch.Elapsed.TotalMilliseconds) { 
+            Properties = { { "_MS.MetricNamespace", "SalesBotMetrics" } } 
+        });
+
+
     }
 }
