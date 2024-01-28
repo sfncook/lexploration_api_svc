@@ -41,10 +41,22 @@ namespace SalesBotApi.Controllers
             Company company = null;
             Conversation convo = null;
             Chatbot chatbot = null;
-            try{
-                company = await sharedQueriesService.GetCompanyById(companyid);
-                convo = await sharedQueriesService.GetConversationById(convoid);
-                chatbot = await sharedQueriesService.GetFirstChatbotByCompanyId(companyid);
+            float[] vector = null;
+
+            try
+            {
+                var companyTask = sharedQueriesService.GetCompanyById(companyid);
+                var convoTask = sharedQueriesService.GetConversationById(convoid);
+                var chatbotTask = sharedQueriesService.GetFirstChatbotByCompanyId(companyid);
+                var vectorTask = memoryStoreService.GetVector(req.user_question);
+
+                await Task.WhenAll(companyTask, convoTask, chatbotTask, vectorTask);
+
+                // After all tasks are complete, you can assign the results
+                company = await companyTask;
+                convo = await convoTask;
+                chatbot = await chatbotTask;
+                vector = await vectorTask;
             }
             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -52,7 +64,6 @@ namespace SalesBotApi.Controllers
             }
 
             // TODO: Add metric many contextDocs by company(?)
-            float[] vector = await memoryStoreService.GetVector(req.user_question);
             string[] contextDocs = await memoryStoreService.GetRelevantContexts(vector, companyid);
             Console.WriteLine($"contextDocs:{contextDocs.Length}");
             Console.WriteLine(string.Join("','", contextDocs));
