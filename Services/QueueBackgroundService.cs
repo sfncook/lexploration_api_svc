@@ -15,20 +15,20 @@ public class QueueBackgroundService : BackgroundService
     private readonly QueueService queueService;
     private readonly WebpageProcessor webpageProcessor;
     private readonly MemoryStoreService memoryStoreService;
-    private readonly TelemetryClient telemetryClient;
+    // private readonly TelemetryClient telemetryClient;
 
 
     public QueueBackgroundService(
         QueueService _queueService, 
         WebpageProcessor _webpageProcessor,
-        MemoryStoreService _memoryStoreService,
-        TelemetryClient _telemetryClient
+        MemoryStoreService _memoryStoreService
+        // TelemetryClient _telemetryClient
     )
     {
         queueService = _queueService;
         webpageProcessor = _webpageProcessor;
         memoryStoreService = _memoryStoreService;
-        telemetryClient = _telemetryClient;
+        // telemetryClient = _telemetryClient;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -71,10 +71,10 @@ public class QueueBackgroundService : BackgroundService
             await memoryStoreService.Write(chunk, link.link, link.company_id);
         }
         stopwatch.Stop();
-        telemetryClient.TrackMetric("links_scrape_ms", stopwatch.Elapsed.TotalMilliseconds);
-        telemetryClient.TrackMetric(new MetricTelemetry("LinkScrape", stopwatch.Elapsed.TotalMilliseconds) { 
-            Properties = { { "_MS.MetricNamespace", "SalesBotMetrics" } } 
-        });
+        // telemetryClient.TrackMetric("links_scrape_ms", stopwatch.Elapsed.TotalMilliseconds);
+        // telemetryClient.TrackMetric(new MetricTelemetry("LinkScrape", stopwatch.Elapsed.TotalMilliseconds) { 
+        //     Properties = { { "_MS.MetricNamespace", "SalesBotMetrics" } } 
+        // });
 
 
     }

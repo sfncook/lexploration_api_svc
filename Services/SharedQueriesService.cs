@@ -64,7 +64,7 @@ public class SharedQueriesService
         QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
 
         Company company = null;
-        using (FeedIterator<Company> feedIterator = chatbotsContainer.GetItemQueryIterator<Company>(queryDefinition))
+        using (FeedIterator<Company> feedIterator = companiesContainer.GetItemQueryIterator<Company>(queryDefinition))
         {
             while (feedIterator.HasMoreResults)
             {

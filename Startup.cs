@@ -44,7 +44,7 @@ namespace SalesBotApi
             services.AddSingleton<AzureOpenAIEmbeddings>();
             services.AddSingleton<WebpageProcessor>();
             services.AddHostedService<QueueBackgroundService>();
-            services.AddApplicationInsightsTelemetry();
+            // services.AddApplicationInsightsTelemetry();
 
 
             services.AddCors(options =>
