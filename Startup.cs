@@ -94,30 +94,10 @@ namespace SalesBotApi
                     var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
                     if (exceptionHandlerPathFeature?.Error is Exception ex)
                     {
-                        // Log the exception
                         logger.LogError(ex, "Unhandled exception occurred.");
                         context.Response.StatusCode = 500;
                         await context.Response.WriteAsync("An unexpected fault happened. Try again later.\n");
-                        
                         await context.Response.WriteAsync(ex.ToString());
-
-                        
-                        // Respond with a list of files in the current directory
-                        var currentDirectory = Directory.GetCurrentDirectory();
-                        var files = Directory.GetFileSystemEntries(currentDirectory);
-                        var filesList = string.Join("\n, ", files);
-                        await context.Response.WriteAsync($"Current Directory: {currentDirectory}\nFiles: {filesList}");
-                        
-                        // Respond with a list of files in the current directory
-                        var ContentRootPath = env.ContentRootPath;
-                        var filesContentRootPath = Directory.GetFileSystemEntries(ContentRootPath);
-                        var filesListContentRootPath = string.Join("\n, ", filesContentRootPath);
-                        await context.Response.WriteAsync($"\n ContentRootPath: {ContentRootPath}\nFiles: {filesListContentRootPath}");
-
-                        var userQuestionPluginDirectoryPath = Path.Combine(env.ContentRootPath, "Plugins", "SalesBot");
-                        var filesuserQuestionPluginDirectoryPath = Directory.GetFileSystemEntries(userQuestionPluginDirectoryPath);
-                        var filesListuserQuestionPluginDirectoryPath = string.Join("\n, ", filesuserQuestionPluginDirectoryPath);
-                        await context.Response.WriteAsync($"\n userQuestionPluginDirectoryPath: {userQuestionPluginDirectoryPath}\nFiles: {filesListuserQuestionPluginDirectoryPath}");
                     }
                 });
             });
