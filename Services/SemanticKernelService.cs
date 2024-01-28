@@ -23,7 +23,7 @@ public class SemanticKernelService
             .AddAzureOpenAIChatCompletion(
                 "keli-35-turbo",
                 "https://keli-chatbot.openai.azure.com/",
-                "6b22e2a31df942ed92e0e283614882aa"
+                "6b22e2a31df942ed92e0e283614882aaXXX"
             )
             ;
         var userQuestionPluginDirectoryPath = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Plugins", "SalesBot");

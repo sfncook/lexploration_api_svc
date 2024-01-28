@@ -98,7 +98,8 @@ namespace SalesBotApi
                         
                         // Respond with a generic error message
                         context.Response.StatusCode = 500;
-                        await context.Response.WriteAsync("An unexpected fault happened. Try again later.");
+                        // await context.Response.WriteAsync("An unexpected fault happened. Try again later.");
+                        await context.Response.WriteAsync(ex.ToString());
                     }
                 });
             });
