@@ -7,6 +7,7 @@ using Kernel = Microsoft.SemanticKernel.Kernel;
 using System.IO;
 using System.Diagnostics;
 using System;
+using Microsoft.AspNetCore.Hosting;
 
 public class SemanticKernelService
 {
@@ -14,7 +15,7 @@ public class SemanticKernelService
     private readonly Kernel kernel;
     private readonly KernelPlugin salesBotPluginFunctions;
 
-    public SemanticKernelService()
+    public SemanticKernelService(IWebHostEnvironment env)
     {
         var builder = Kernel.CreateBuilder();
         builder.Services.AddLogging(c => c.AddDebug().SetMinimumLevel(LogLevel.Trace));
@@ -23,10 +24,10 @@ public class SemanticKernelService
             .AddAzureOpenAIChatCompletion(
                 "keli-35-turbo",
                 "https://keli-chatbot.openai.azure.com/",
-                "6b22e2a31df942ed92e0e283614882aaXXX"
+                "6b22e2a31df942ed92e0e283614882aa"
             )
             ;
-        var userQuestionPluginDirectoryPath = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Plugins", "SalesBot");
+        var userQuestionPluginDirectoryPath = Path.Combine(env.ContentRootPath, "Plugins", "SalesBot");
         kernel = builder.Build();
         salesBotPluginFunctions = kernel.ImportPluginFromPromptDirectory(userQuestionPluginDirectoryPath);
     }
