@@ -56,29 +56,39 @@ namespace SalesBotApi.Controllers
             Chatbot chatbot = null;
             IEnumerable<Message> messages = null;
             IEnumerable<Refinement> refinements = null;
-            float[] vectorFloatArrAzure = null;
+            // float[] vectorFloatArrAzure = null;
             float[] vectorFloatArrOpenai = null;
 
             Stopwatch stopwatch = Stopwatch.StartNew();
+            Task<IEnumerable<Message>> msgsTask;
             try
             {
+                // Message cannot by effectively cached so I'm pulling this out
+                msgsTask = sharedQueriesService.GetRecentMsgsForConvo(convoid, 4);
                 var companyTask = sharedQueriesService.GetCompanyById(companyid);
                 var convoTask = sharedQueriesService.GetConversationById(convoid);
                 var chatbotTask = sharedQueriesService.GetFirstChatbotByCompanyId(companyid);
                 var refinementsTask = sharedQueriesService.GetRefinementsByCompanyId(companyid);
-                var msgsTask = sharedQueriesService.GetRecentMsgsForConvo(convoid, 4);
-                var vectorTaskAzure = memoryStoreService.GetVectorAzure(req.user_msg);
+                // var vectorTaskAzure = memoryStoreService.GetVectorAzure(req.user_msg);
                 var vectorTaskOpenai = memoryStoreService.GetVectorOpenAi(req.user_msg);
 
-                await Task.WhenAll(companyTask, convoTask, chatbotTask, vectorTaskAzure, vectorTaskOpenai);
+                await Task.WhenAll(
+                    companyTask, 
+                    convoTask, 
+                    chatbotTask, 
+                    refinementsTask,
+                    // msgsTask,
+                    // vectorTaskAzure,
+                    vectorTaskOpenai
+                );
 
                 // After all tasks are complete, you can assign the results
                 company = await companyTask;
                 convo = await convoTask;
                 chatbot = await chatbotTask;
-                messages = await msgsTask;
                 refinements = await refinementsTask;
-                vectorFloatArrAzure = await vectorTaskAzure;
+                // messages = await msgsTask;
+                // vectorFloatArrAzure = await vectorTaskAzure;
                 vectorFloatArrOpenai = await vectorTaskOpenai;
             }
             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -88,9 +98,13 @@ namespace SalesBotApi.Controllers
             stopwatch.Stop();
             Console.WriteLine($"METRICS (COSMOS & OpenAI-Embeddings) Load cosmos data: {stopwatch.ElapsedMilliseconds} ms");
 
-            CompareFloatArrays(vectorFloatArrAzure, vectorFloatArrOpenai);
+            // CompareFloatArrays(vectorFloatArrAzure, vectorFloatArrOpenai);
 
-            string[] contextDocs = await GetRelevantContexts(vectorFloatArrAzure, companyid) ;
+            float[] vectorFloatArr = vectorFloatArrOpenai;
+
+            string[] contextDocs = await GetRelevantContexts(vectorFloatArr, companyid) ;
+
+            messages = await msgsTask;
 
             AssistantResponse assistantResponse = await SubmitUserQuestion(
                 req.user_msg, 
