@@ -75,7 +75,7 @@ namespace SalesBotApi.Controllers
             // TODO: Add metric many contextDocs by company(?)
             string[] contextDocs = await memoryStoreService.GetRelevantContexts(vector, companyid);
             Console.WriteLine($"contextDocs:{contextDocs.Length}");
-            Console.WriteLine(string.Join("','", contextDocs));
+            // Console.WriteLine(string.Join("','", contextDocs));
 
             ChatCompletionResponse chatCompletionResponse = await openAiHttpRequestService.SubmitUserQuestion(
                 req.user_question, 

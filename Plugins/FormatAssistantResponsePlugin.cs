@@ -21,7 +21,6 @@ public class FormatAssistantResponsePlugin
         [Description("The user has said satisfied one of the 'redirect prompts' and this is the URL we should redirect them to")] string _redirect_url
     )
     {
-        Console.WriteLine("FormatAssistantResponse");
         AssistantResponse2 resp = new AssistantResponse2
         {
             assistant_response = _assistant_response,

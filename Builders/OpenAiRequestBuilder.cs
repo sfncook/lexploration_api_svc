@@ -139,7 +139,6 @@ public class OpenAiRequestBuilder
 
 
         string allMsgsStr = JsonConvert.SerializeObject(allMsgs.ToArray());
-        Console.WriteLine(allMsgsStr);
         return replaceInTemplate(reqParams, "messages", allMsgsStr);
     }
 

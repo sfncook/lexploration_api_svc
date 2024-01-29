@@ -44,7 +44,7 @@ public class OpenAiHttpRequestService
             .build();
 
         reqParams = EscapeStringForJson(reqParams);
-        Console.WriteLine(reqParams);
+        // Console.WriteLine(reqParams);
 
         var content = new StringContent(reqParams, Encoding.UTF8, "application/json");
 
