@@ -1,9 +1,17 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Newtonsoft.Json;
+using SalesBotApi.Controllers;
+using SalesBotApi.Models;
+
 public class OpenAiRequestBuilder
 {
 
     private string system_prompt;
     private string user_question;
     private string model;
+    private IEnumerable<Message> messages;
 
     public OpenAiRequestBuilder setSystemPrompt(string system_prompt){
         this.system_prompt = system_prompt;
@@ -17,20 +25,15 @@ public class OpenAiRequestBuilder
         this.model = model;
         return this;
     }
+    public OpenAiRequestBuilder setMessages(IEnumerable<Message> messages){
+        this.messages = messages;
+        return this;
+    }
 
     private readonly string reqParamsTemplate = @"
 {
   ""model"": ""{model}"",
-  ""messages"": [
-    {
-      ""role"": ""system"",
-      ""content"": ""{system_prompt}""
-    },
-    {
-      ""role"": ""user"",
-      ""content"": ""{user_question}""
-    }
-  ],
+  ""messages"": {messages},
   ""temperature"": 0.7,
   ""tools"": [
     {
@@ -100,14 +103,44 @@ public class OpenAiRequestBuilder
 
     public string build() {
         string reqParams = reqParamsTemplate;
-        reqParams = replaceInTemplate(reqParams, "system_prompt", EscapeStringForJson(system_prompt));
-        reqParams = replaceInTemplate(reqParams, "user_question", EscapeStringForJson(user_question));
+        reqParams = setAllMessagesInTemplate(reqParams);
         reqParams = replaceInTemplate(reqParams, "model", model);
         return reqParams;
     }
 
     private string replaceInTemplate(string prompt, string key, string value) {
         return prompt.Replace("{"+key+"}", value);
+    }
+
+    private string setAllMessagesInTemplate(string reqParams) {
+        List<GptMessage> allMsgs = new List<GptMessage>();
+
+        allMsgs.Add(new GptMessage{
+            role = "system", 
+            content = system_prompt
+        });
+
+        var sortedMessages = messages.OrderBy(message => message._ts);
+        foreach(Message msg in sortedMessages) {
+            allMsgs.Add(new GptMessage{
+                role = "user", 
+                content = msg.user_msg
+            });
+            allMsgs.Add(new GptMessage{
+                role = "assistant", 
+                content = msg.assistant_response
+            });
+        }
+
+        allMsgs.Add(new GptMessage{
+            role = "user", 
+            content = user_question
+        });
+
+
+        string allMsgsStr = JsonConvert.SerializeObject(allMsgs.ToArray());
+        Console.WriteLine(allMsgsStr);
+        return replaceInTemplate(reqParams, "messages", allMsgsStr);
     }
 
     public static string EscapeStringForJson(string input)
@@ -121,5 +154,22 @@ public class OpenAiRequestBuilder
                     .Replace("\t", " ")
                     .Replace("\b", " ")
                     .Replace("\f", " ");
+    }
+
+    private GptMessage[] convertCosmosMessagesToGptFormat(IEnumerable<Message> messages) {
+        GptMessage[] gptMessages = new GptMessage[messages.Count() *2];
+        foreach(Message msg in messages){
+            GptMessage usrMsg = new GptMessage{
+                role = "role",
+                content = msg.user_msg
+            };
+            GptMessage assistantMsg = new GptMessage{
+                role = "assistant",
+                content = msg.assistant_response
+            };
+            gptMessages.Append(usrMsg);
+            gptMessages.Append(assistantMsg);
+        }
+        return gptMessages;
     }
 }

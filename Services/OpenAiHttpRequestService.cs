@@ -22,7 +22,7 @@ public class OpenAiHttpRequestService
         Conversation convo,
         Chatbot chatbot,
         IEnumerable<Refinement> refinements,
-        SalesBotApi.Controllers.GptMessage[] gptMessages
+        IEnumerable<Message> messages
     )
     {
         PromptBuilder promptBuilder = new PromptBuilder();
@@ -40,7 +40,7 @@ public class OpenAiHttpRequestService
             .setModel("gpt-3.5-turbo")
             .setUserQuestion(userQuestion)
             .setSystemPrompt(prompt)
-            // .setSystemPrompt("You are a helpful assistant")
+            .setMessages(messages)
             .build();
 
         reqParams = EscapeStringForJson(reqParams);
@@ -72,40 +72,6 @@ public class OpenAiHttpRequestService
         public AssistantResponse parameters { get; set;}
     }
 
-// {
-//   "id": "chatcmpl-8m73YophFst40PfCCz4IBs0PkmEGs",
-//   "object": "chat.completion",
-//   "created": 1706477560,
-//   "model": "gpt-3.5-turbo-0613",
-//   "choices": [
-//     {
-//       "index": 0,
-//       "message": {
-//         "role": "assistant",
-//         "content": null,
-//         "tool_calls": [
-//           {
-//             "id": "call_JCPMlEmCPufRREZr6iRt7xqr",
-//             "type": "function",
-//             "function": {
-//               "name": "response_with_optional_user_data",
-//               "arguments": "{\n  \"assistant_response\": \"Nice to meet you, Shawn! How can I assist you today?\",\n  \"user_first_name\": \"Shawn\",\n  \"user_email\": \"sfncook@gmail.com\"\n}"
-//             }
-//           }
-//         ]
-//       },
-//       "logprobs": null,
-//       "finish_reason": "stop"
-//     }
-//   ],
-//   "usage": {
-//     "prompt_tokens": 307,
-//     "completion_tokens": 44,
-//     "total_tokens": 351
-//   },
-//   "system_fingerprint": null
-// }
-
     public class ChatCompletionResponse
     {
         public string id { get; set; }
@@ -120,12 +86,12 @@ public class OpenAiHttpRequestService
     public class Choice
     {
         public int index { get; set; }
-        public Message message { get; set; }
+        public _Message message { get; set; }
         public object logprobs { get; set; }
         public string finish_reason { get; set; }
     }
 
-    public class Message
+    public class _Message
     {
         public string role { get; set; }
         public string content { get; set; }

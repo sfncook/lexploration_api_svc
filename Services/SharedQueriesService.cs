@@ -50,9 +50,9 @@ public class SharedQueriesService
         return response.Resource;
     }
 
-    public async Task<IEnumerable<Message>> GetRecentMsgsForConvo(string convo_id)
+    public async Task<IEnumerable<Message>> GetRecentMsgsForConvo(string convo_id, int limit)
     {
-        string sqlQueryText = $"SELECT TOP 10 * FROM m WHERE m.conversation_id = '{convo_id}' ORDER BY m._ts DESC";
+        string sqlQueryText = $"SELECT TOP {limit} * FROM m WHERE m.conversation_id = '{convo_id}' ORDER BY m._ts DESC";
 
         QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
 

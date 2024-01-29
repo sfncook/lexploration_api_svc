@@ -5,8 +5,7 @@ using SalesBotApi.Models;
 using Microsoft.Azure.Cosmos;
 using System.Collections.Generic;
 using static OpenAiHttpRequestService;
-using System.Reflection.Metadata.Ecma335;
-using System.Linq;
+using Message = SalesBotApi.Models.Message;
 
 namespace SalesBotApi.Controllers
 {
@@ -45,7 +44,7 @@ namespace SalesBotApi.Controllers
             Company company = null;
             Conversation convo = null;
             Chatbot chatbot = null;
-            IEnumerable<Models.Message> messages = null;
+            IEnumerable<Message> messages = null;
             IEnumerable<Refinement> refinements = null;
             float[] vector = null;
 
@@ -55,7 +54,7 @@ namespace SalesBotApi.Controllers
                 var convoTask = sharedQueriesService.GetConversationById(convoid);
                 var chatbotTask = sharedQueriesService.GetFirstChatbotByCompanyId(companyid);
                 var refinementsTask = sharedQueriesService.GetRefinementsByCompanyId(companyid);
-                var msgsTask = sharedQueriesService.GetRecentMsgsForConvo(convoid);
+                var msgsTask = sharedQueriesService.GetRecentMsgsForConvo(convoid, 4);
                 var vectorTask = memoryStoreService.GetVector(req.user_question);
 
                 await Task.WhenAll(companyTask, convoTask, chatbotTask, vectorTask);
@@ -78,8 +77,6 @@ namespace SalesBotApi.Controllers
             Console.WriteLine($"contextDocs:{contextDocs.Length}");
             Console.WriteLine(string.Join("','", contextDocs));
 
-            GptMessage[] gptMessages = convertCosmosMessagesToGptFormat(messages);
-
             ChatCompletionResponse chatCompletionResponse = await openAiHttpRequestService.SubmitUserQuestion(
                 req.user_question, 
                 contextDocs, 
@@ -87,44 +84,10 @@ namespace SalesBotApi.Controllers
                 convo, 
                 chatbot, 
                 refinements,
-                gptMessages
+                messages
             );
 
             return Ok(chatCompletionResponse);
-        }
-
-        // def convert_cosmos_messages_to_gpt_format(messages):
-        // converted_messages = []
-
-        // for message in messages:
-        //     user_message = {
-        //         "role": "user",
-        //         "content": message["user_msg"]
-        //     }
-        //     assistant_message = {
-        //         "role": "assistant",
-        //         "content": message["assistant_response"]
-        //     }
-
-        //     converted_messages.append(user_message)
-        //     converted_messages.append(assistant_message)
-
-        // return converted_messages
-        private GptMessage[] convertCosmosMessagesToGptFormat(IEnumerable<Models.Message> messages) {
-            GptMessage[] gptMessages = new GptMessage[messages.Count() *2];
-            foreach(Models.Message msg in messages){
-                GptMessage usrMsg = new GptMessage{
-                    role = "role",
-                    content = msg.user_msg
-                };
-                GptMessage assistantMsg = new GptMessage{
-                    role = "assistant",
-                    content = msg.assistant_response
-                };
-                gptMessages.Append(usrMsg);
-                gptMessages.Append(assistantMsg);
-            }
-            return gptMessages;
         }
     }
     
