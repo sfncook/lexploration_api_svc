@@ -20,13 +20,15 @@ namespace SalesBotApi.Controllers
         private readonly SharedQueriesService sharedQueriesService;
         private readonly Container messagesContainer;
         private readonly AzureSpeechService azureSpeechService;
+        private readonly EmailService emailService;
 
         public AiController(
             OpenAiHttpRequestService _openAiHttpRequestService, 
             MemoryStoreService _memoryStoreService,
             SharedQueriesService _sharedQueriesService,
             CosmosDbService cosmosDbService,
-            AzureSpeechService azureSpeechService
+            AzureSpeechService azureSpeechService,
+            EmailService emailService
         )
         {
             openAiHttpRequestService = _openAiHttpRequestService;
@@ -34,6 +36,7 @@ namespace SalesBotApi.Controllers
             sharedQueriesService = _sharedQueriesService;
             messagesContainer = cosmosDbService.MessagesContainer;
             this.azureSpeechService = azureSpeechService;
+            this.emailService = emailService;
         }
 
         // PUT: api/ai/submit_user_question
@@ -124,12 +127,17 @@ namespace SalesBotApi.Controllers
                 req.user_msg,
                 assistantResponse
             );
-            //TODO: Send email
-
-            await Task.WhenAll(speechTask, insertMsgTask);
+            var leadsEmailTask = SendLeadGenEmailIfNeeded(
+                company.email_for_leads, 
+                assistantResponse,
+                convoid
+            );
+            
+            await Task.WhenAll(speechTask, insertMsgTask, leadsEmailTask);
             
             SpeechResults speechResults = await speechTask;
             await insertMsgTask;
+            await leadsEmailTask;
             stopwatch.Stop();
             Console.WriteLine($"METRICS (COSMOS & Azure-Speech) Speech & insert-msg: {stopwatch.ElapsedMilliseconds} ms");
 
@@ -145,6 +153,21 @@ namespace SalesBotApi.Controllers
             Console.WriteLine($"METRICS (Full) SubmitUserMessage: {stopwatch1.ElapsedMilliseconds} ms");
 
             return Ok(submitResponse);
+        }
+
+        private async Task SendLeadGenEmailIfNeeded(
+            string recipient_email, 
+            AssistantResponse assistantResponse,
+            string convo_id
+        ) {
+            if (
+                assistantResponse.user_email != null ||
+                assistantResponse.user_phone_number != null ||
+                assistantResponse.user_wants_to_schedule_call_with_sales_rep ||
+                assistantResponse.user_wants_to_be_contacted
+            ) {
+                await emailService.SendLeadGeneratedEmail(recipient_email, assistantResponse, convo_id);
+            }
         }
 
         private async Task<SpeechResults> GetSpeech(string text, bool mute) {

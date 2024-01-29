@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 using SalesBotApi.Models;
+using static OpenAiHttpRequestService;
 
 public class EmailService
 {
@@ -29,6 +30,35 @@ public class EmailService
 
         await queueService.EnqueueSendEmailMessageAsync(emailReq);
     }
+
+    public async Task SendLeadGeneratedEmail(
+        string recipient_email, 
+        AssistantResponse assistantResponse,
+        string convo_id
+    ) {
+            await SendEmail(
+                "hello@saleschat.bot", 
+                "SalesChatbot", 
+                recipient_email, 
+                "New website lead from SalesChat.bot", 
+                $@"
+Hello!
+
+Good news -- you have a new website lead from SalesChat.bot. Here is their information:
+
+First Name: {assistantResponse.user_first_name}
+Last Name: {assistantResponse.user_last_name}
+Email:  {assistantResponse.user_email}
+Phone: {assistantResponse.user_phone_number}
+Conversation history: https://admin.saleschat.bot/messages?convo_id={convo_id}
+
+Please reach out to them as soon as possible.
+
+Thank you,
+The SalesChat.bot team
+                "
+            );
+        }
 
     public async Task SendRegistrationEmail(string recipient_email) {
             await SendEmail(
