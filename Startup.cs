@@ -52,6 +52,7 @@ namespace SalesBotApi
             services.AddSingleton<WebpageProcessor>();
             services.AddSingleton<AzureSpeechService>();
             services.AddHostedService<QueueBackgroundService>();
+            services.AddHostedService<CacheInitializationService>();
             // services.AddApplicationInsightsTelemetry();
 
 

@@ -107,6 +107,7 @@ public class SharedQueriesService
         Stopwatch stopwatch = Stopwatch.StartNew();
         Company company = cacheCompany.Get(company_id);
         if(company == null) {
+            Console.WriteLine($"cache_debug GetCompanyById cache MISS {company_id}");
             string sqlQueryText;
             if (company_id == "all") sqlQueryText = $"SELECT * FROM c";
             else sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
@@ -122,6 +123,8 @@ public class SharedQueriesService
                 }
             }
             cacheCompany.Set(company_id, company);
+        } else {
+            Console.WriteLine($"cache_debug GetCompanyById cache HIT {company_id}");
         }
         stopwatch.Stop();
         Console.WriteLine($"--> METRICS (COSMOS) Load cosmos data GetCompanyById: {stopwatch.ElapsedMilliseconds} ms");
