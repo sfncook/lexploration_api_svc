@@ -116,7 +116,7 @@ namespace SalesBotApi.Controllers
         }
 
 
-        // Stupid fucking hack because Azure functions are pure dog shit.
+        // No-Auth for chat client
         // GET: api/conversations/verify
         [HttpGet("verify")]
         public async Task<IActionResult> VerifyConversationById(
@@ -131,6 +131,37 @@ namespace SalesBotApi.Controllers
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
             if(conversation != null) return NoContent();
             else return NotFound();
+        }
+
+        // No-Auth for chat client
+        // POST: api/conversations/create
+        [HttpPost("create")]
+        public async Task<ActionResult<Conversation>> CreateNewConvo(
+            [FromQuery] string companyid
+        )
+        {
+            if (companyid == null) {
+                return BadRequest();
+            }
+
+            Company company = await sharedQueriesService.GetCompanyById(companyid);
+            if(company==null) {
+                return NotFound();
+            }
+
+            var id = Guid.NewGuid().ToString();
+            Conversation newConvo = new Conversation
+            {
+                id = id,
+                company_id = companyid,
+                user_id = id
+            };
+
+            await conversationsContainer.CreateItemAsync(newConvo, new PartitionKey(id));
+            cacheConvo.Clear(newConvo.id);
+
+            Response.Headers.Add("Access-Control-Allow-Origin", "*");
+            return Ok(newConvo);
         }
     }
 }
