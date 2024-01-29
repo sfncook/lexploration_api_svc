@@ -3,6 +3,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using SalesBotApi.Models;
 using Microsoft.Azure.Cosmos;
+using System.Diagnostics;
+using System;
 
 
 public class SharedQueriesService
@@ -52,6 +54,7 @@ public class SharedQueriesService
 
     public async Task<IEnumerable<Message>> GetRecentMsgsForConvo(string convo_id, int limit)
     {
+        Stopwatch stopwatch = Stopwatch.StartNew();
         string sqlQueryText = $"SELECT TOP {limit} * FROM m WHERE m.conversation_id = '{convo_id}' ORDER BY m._ts DESC";
 
         QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
@@ -65,18 +68,24 @@ public class SharedQueriesService
                 messages.AddRange(response.ToList());
             }
         }
+        stopwatch.Stop();
+        Console.WriteLine($"--> METRICS (COSMOS) Load cosmos data GetRecentMsgsForConvo: {stopwatch.ElapsedMilliseconds} ms");
         return messages;
     }
 
     public async Task<Conversation> GetConversationById(string convo_id)
     {
+        Stopwatch stopwatch = Stopwatch.StartNew();
         var partitionKeyValue = new PartitionKey(convo_id);
         var response = await conversationsContainer.ReadItemAsync<Conversation>(convo_id, partitionKeyValue);
+        stopwatch.Stop();
+        Console.WriteLine($"--> METRICS (COSMOS) Load cosmos data GetConversationById: {stopwatch.ElapsedMilliseconds} ms");
         return response.Resource;
     }
 
     public async Task<Company> GetCompanyById(string company_id)
     {
+        Stopwatch stopwatch = Stopwatch.StartNew();
         string sqlQueryText;
         if (company_id == "all") sqlQueryText = $"SELECT * FROM c";
         else sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
@@ -92,6 +101,8 @@ public class SharedQueriesService
                 company = response.FirstOrDefault();
             }
         }
+        stopwatch.Stop();
+        Console.WriteLine($"--> METRICS (COSMOS) Load cosmos data GetCompanyById: {stopwatch.ElapsedMilliseconds} ms");
         return company;
     }
 
@@ -117,6 +128,7 @@ public class SharedQueriesService
 
     public async Task<Chatbot> GetFirstChatbotByCompanyId(string company_id)
     {
+        Stopwatch stopwatch = Stopwatch.StartNew();
         string sqlQueryText;
         if (company_id == "all") sqlQueryText = $"SELECT * FROM c";
         else sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
@@ -132,11 +144,14 @@ public class SharedQueriesService
                 chatbot = response.FirstOrDefault();
             }
         }
+        stopwatch.Stop();
+        Console.WriteLine($"--> METRICS (COSMOS) Load cosmos data GetFirstChatbotByCompanyId: {stopwatch.ElapsedMilliseconds} ms");
         return chatbot;
     }
 
     public async Task<IEnumerable<Refinement>> GetRefinementsByCompanyId(string company_id)
     {
+        Stopwatch stopwatch = Stopwatch.StartNew();
         string sqlQueryText;
         if (company_id == "all") sqlQueryText = $"SELECT * FROM c";
         else sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
@@ -152,6 +167,8 @@ public class SharedQueriesService
                 refinements.AddRange(response.ToList());
             }
         }
+        stopwatch.Stop();
+        Console.WriteLine($"--> METRICS (COSMOS) Load cosmos data GetRefinementsByCompanyId: {stopwatch.ElapsedMilliseconds} ms");
         return refinements;
     }
 

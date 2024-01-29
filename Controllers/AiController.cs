@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using static OpenAiHttpRequestService;
 using static AzureSpeechService;
 using Newtonsoft.Json;
+using System.Diagnostics;
 
 namespace SalesBotApi.Controllers
 {
@@ -43,18 +44,22 @@ namespace SalesBotApi.Controllers
             [FromQuery] string convoid
         )
         {
+            Stopwatch stopwatch1 = Stopwatch.StartNew();
             if(req==null || req.user_msg==null){
                 return BadRequest();
             }
 
+            Console.WriteLine($"METRICS *** START ***");
 
             Company company = null;
             Conversation convo = null;
             Chatbot chatbot = null;
             IEnumerable<Message> messages = null;
             IEnumerable<Refinement> refinements = null;
-            float[] vector = null;
+            float[] vectorFloatArrAzure = null;
+            float[] vectorFloatArrOpenai = null;
 
+            Stopwatch stopwatch = Stopwatch.StartNew();
             try
             {
                 var companyTask = sharedQueriesService.GetCompanyById(companyid);
@@ -62,9 +67,10 @@ namespace SalesBotApi.Controllers
                 var chatbotTask = sharedQueriesService.GetFirstChatbotByCompanyId(companyid);
                 var refinementsTask = sharedQueriesService.GetRefinementsByCompanyId(companyid);
                 var msgsTask = sharedQueriesService.GetRecentMsgsForConvo(convoid, 4);
-                var vectorTask = memoryStoreService.GetVector(req.user_msg);
+                var vectorTaskAzure = memoryStoreService.GetVectorAzure(req.user_msg);
+                var vectorTaskOpenai = memoryStoreService.GetVectorOpenAi(req.user_msg);
 
-                await Task.WhenAll(companyTask, convoTask, chatbotTask, vectorTask);
+                await Task.WhenAll(companyTask, convoTask, chatbotTask, vectorTaskAzure, vectorTaskOpenai);
 
                 // After all tasks are complete, you can assign the results
                 company = await companyTask;
@@ -72,20 +78,21 @@ namespace SalesBotApi.Controllers
                 chatbot = await chatbotTask;
                 messages = await msgsTask;
                 refinements = await refinementsTask;
-                vector = await vectorTask;
+                vectorFloatArrAzure = await vectorTaskAzure;
+                vectorFloatArrOpenai = await vectorTaskOpenai;
             }
             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 return NotFound();
             }
+            stopwatch.Stop();
+            Console.WriteLine($"METRICS (COSMOS & OpenAI-Embeddings) Load cosmos data: {stopwatch.ElapsedMilliseconds} ms");
 
-            // TODO: Add metric many contextDocs by company(?)
-            string[] contextDocs = await memoryStoreService.GetRelevantContexts(vector, companyid);
-            Console.WriteLine($"contextDocs:{contextDocs.Length}");
-            // Console.WriteLine(string.Join("','", contextDocs));
+            CompareFloatArrays(vectorFloatArrAzure, vectorFloatArrOpenai);
 
-            // TODO: Add metric latency call
-            AssistantResponse assistantResponse = await openAiHttpRequestService.SubmitUserQuestion(
+            string[] contextDocs = await GetRelevantContexts(vectorFloatArrAzure, companyid) ;
+
+            AssistantResponse assistantResponse = await SubmitUserQuestion(
                 req.user_msg, 
                 contextDocs, 
                 company, 
@@ -95,25 +102,22 @@ namespace SalesBotApi.Controllers
                 messages
             );
 
-            SpeechResults speechResults;
-            if(!req.mute) {
-                speechResults = await azureSpeechService.GetSpeech(assistantResponse.assistant_response);
-                // Console.WriteLine(JsonConvert.SerializeObject(speechResults));
-            } else {
-                speechResults = new SpeechResults() {
-                    lipsync = new LipSyncResults(),
-                    audio = ""
-                };
-            }
-
-            await InsertNewMessage(
+            stopwatch = Stopwatch.StartNew();
+            var speechTask = GetSpeech(assistantResponse.assistant_response, req.mute);
+            var insertMsgTask = InsertNewMessage(
                 convoid,
                 companyid,
                 req.user_msg,
                 assistantResponse
             );
-
             //TODO: Send email
+
+            await Task.WhenAll(speechTask, insertMsgTask);
+            
+            SpeechResults speechResults = await speechTask;
+            await insertMsgTask;
+            stopwatch.Stop();
+            Console.WriteLine($"METRICS (COSMOS & Azure-Speech) Speech & insert-msg: {stopwatch.ElapsedMilliseconds} ms");
 
             SubmitResponse submitResponse = new SubmitResponse() {
                 assistant_response = new SubmitResponseAssistantResponse(){role="assistant", content=assistantResponse.assistant_response},
@@ -122,7 +126,64 @@ namespace SalesBotApi.Controllers
                 audio = speechResults.audio
             };
 
+            Console.WriteLine($"METRICS *** END ***\n");
+            stopwatch1.Stop();
+            Console.WriteLine($"METRICS (Full) SubmitUserMessage: {stopwatch1.ElapsedMilliseconds} ms");
+
             return Ok(submitResponse);
+        }
+
+        private async Task<SpeechResults> GetSpeech(string text, bool mute) {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            SpeechResults speechResults;
+            if(!mute) {
+                speechResults = await azureSpeechService.GetSpeech(text);
+            } else {
+                speechResults = new SpeechResults() {
+                    lipsync = new LipSyncResults(),
+                    audio = ""
+                };
+            }
+            stopwatch.Stop();
+            Console.WriteLine($"--> METRICS (Azure-Speech) Get speech response: {stopwatch.ElapsedMilliseconds} ms");
+            return speechResults;
+        }
+
+        private async Task<string[]> GetRelevantContexts(float[] vectorFloatArr, string companyId) 
+        {
+            // TODO: Add metric many contextDocs by company(?)
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            string[] contextDocs = await memoryStoreService.GetRelevantContexts(vectorFloatArr, companyId);
+            Console.WriteLine($"contextDocs:{contextDocs.Length}");
+            stopwatch.Stop();
+            Console.WriteLine($"METRICS (PINECONE) Get vector contexts: {stopwatch.ElapsedMilliseconds} ms");
+            return contextDocs;
+        }
+
+        private async Task<AssistantResponse> SubmitUserQuestion(
+            string user_msg, 
+            string[] contextDocs,
+            Company company,
+            Conversation convo,
+            Chatbot chatbot,
+            IEnumerable<Refinement> refinements,
+            IEnumerable<Message> messages
+        )
+        {
+            // TODO: Add metric latency call
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            AssistantResponse assistantResponse = await openAiHttpRequestService.SubmitUserQuestion(
+                user_msg, 
+                contextDocs, 
+                company, 
+                convo, 
+                chatbot, 
+                refinements,
+                messages
+            );
+            stopwatch.Stop();
+            Console.WriteLine($"METRICS (OpenAI) Get chat assistant response: {stopwatch.ElapsedMilliseconds} ms");
+            return assistantResponse;
         }
 
         private async Task InsertNewMessage(
@@ -131,6 +192,7 @@ namespace SalesBotApi.Controllers
             string user_msg,
             AssistantResponse assistantResponse
         ) {
+            Stopwatch stopwatch = Stopwatch.StartNew();
             Message message = new Message {
                 id = Guid.NewGuid().ToString(),
                 conversation_id = convoid,
@@ -147,6 +209,40 @@ namespace SalesBotApi.Controllers
                 redirect_url = assistantResponse.redirect_url
             };
             await messagesContainer.CreateItemAsync(message, new PartitionKey(convoid));
+            stopwatch.Stop();
+            Console.WriteLine($"--> METRICS (Cosmos) Insert new message: {stopwatch.ElapsedMilliseconds} ms");
+        }
+
+        // This is only for debugging, evaluation, and testing.  This function can be deleted at anytime
+        private void CompareFloatArrays(float[] arr1, float[] arr2)
+        {
+            // Check if either array is null
+            if (arr1 == null || arr2 == null)
+            {
+                Console.WriteLine("METRICS (CompareFloatArrays) One or both arrays are null.");
+                return;
+            }
+
+            // Check if arrays have the same length
+            if (arr1.Length != arr2.Length)
+            {
+                Console.WriteLine("METRICS (CompareFloatArrays) Arrays have different lengths.");
+                return;
+            }
+
+            // Tolerance for floating point comparison
+            float tolerance = 0.000001f;
+
+            for (int i = 0; i < arr1.Length; i++)
+            {
+                if (Math.Abs(arr1[i] - arr2[i]) > tolerance)
+                {
+                    Console.WriteLine($"METRICS (CompareFloatArrays) Arrays differ at index {i}. Values are {arr1[i]} and {arr2[i]}.");
+                    return;
+                }
+            }
+
+            Console.WriteLine("METRICS (CompareFloatArrays) Arrays are equal.");
         }
 
     }//class AiController

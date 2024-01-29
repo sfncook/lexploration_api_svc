@@ -4,41 +4,40 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
-public class AzureOpenAIEmbeddings
+public class OpenAIEmbeddings : IEmbeddingsProvider
 {
     private readonly HttpClient _httpClient;
     private readonly string _apiKey;
-    private readonly string _endpoint;
-    private readonly string deployment = "salesbot-text-embedding-ada-002";
 
-    public AzureOpenAIEmbeddings()
+    public OpenAIEmbeddings()
     {
-        _apiKey = "6b22e2a31df942ed92e0e283614882aa";
-        _endpoint = "https://keli-chatbot.openai.azure.com/";
+        _apiKey = "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";
         _httpClient = new HttpClient();
-        // _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
     }
 
 
-// curl https://keli-chatbot.openai.azure.com/openai/deployments/salesbot-text-embedding-ada-002/embeddings?api-version=2023-05-15 \
-//   -H "Content-Type: application/json" \
-//   -H "api-key: 6b22e2a31df942ed92e0e283614882aa" \
-//   -d "{\"input\": \"The food was delicious and the waiter...\"}"
-
+    // curl https://api.openai.com/v1/embeddings \
+    // -H "Content-Type: application/json" \
+    // -H "Authorization: Bearer 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" \
+    // -d '{
+    //     "input": "Your text string goes here",
+    //     "model": "text-embedding-3-small"
+    // }'
     public async Task<float[]> GetEmbeddingsAsync(string text)
     {
         var requestBody = new
         {
-            input = text
+            input = text,
+            model = "text-embedding-3-small"
         };
 
         var content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
 
         // Replace HttpMethod.Get with HttpMethod.Post
-        using (var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{_endpoint}/openai/deployments/{deployment}/embeddings?api-version=2023-05-15"))
+        using (var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"https://api.openai.com/v1/embeddings"))
         {
             requestMessage.Content = content;
-            requestMessage.Headers.Add("api-key", _apiKey);
+            requestMessage.Headers.Add("Authorization", $"Bearer {_apiKey}");
 
             var response = await _httpClient.SendAsync(requestMessage);
             response.EnsureSuccessStatusCode();

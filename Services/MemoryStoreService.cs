@@ -9,10 +9,16 @@ using System.Diagnostics;
 public class MemoryStoreService
 {
     private readonly HttpClient _httpClient =  new HttpClient();
-    private readonly AzureOpenAIEmbeddings openAIEmbeddings = new AzureOpenAIEmbeddings();
+    private readonly AzureOpenAIEmbeddings azureEmbeddings;
+    private readonly OpenAIEmbeddings openaiEmbeddings;
     string apiKey = "fa3b5160-cb16-4959-bef9-7b46cbe8c80f";
     string pineconeHost = "https://companies-dev-s1ptuxy.svc.apw5-4e34-81fa.pinecone.io";
 
+    public MemoryStoreService(AzureOpenAIEmbeddings azureEmbeddings, OpenAIEmbeddings openaiEmbeddings)
+    {
+        this.azureEmbeddings = azureEmbeddings;
+        this.openaiEmbeddings = openaiEmbeddings;
+    }
 
         // curl -X POST "https://companies-x9v8jnv.svc.gcp-starter.pinecone.io/vectors/upsert" \
         // -H "Api-Key: fcafedc4-cf32-4b4a-9d26-08fc227cf526" \
@@ -31,8 +37,7 @@ public class MemoryStoreService
         //     "namespace": "ns1"
         // }'
     public async Task<string> Write(string documentStr, string url, string company_id) {
-        AzureOpenAIEmbeddings openAIEmbeddings = new AzureOpenAIEmbeddings();
-        float[] vectorFltAr = await openAIEmbeddings.GetEmbeddingsAsync(documentStr);
+        float[] vectorFltAr = await azureEmbeddings.GetEmbeddingsAsync(documentStr);
         // string vectorStr = string.Join(", ", vectorFltAr);
 
         string id = Guid.NewGuid().ToString();
@@ -77,14 +82,27 @@ public class MemoryStoreService
         }
     }
 
-    public async Task<float[]> GetVector(string question)
+    public async Task<float[]> GetVectorOpenAi(string question)
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
-        // TODO: Add latency metric
-        float[] vectorFloatArr = await openAIEmbeddings.GetEmbeddingsAsync(question);
+        float[] vectorFloatArr =  await GetVector(openaiEmbeddings, question);
         stopwatch.Stop();
-        Console.WriteLine($"GetVector: {stopwatch.ElapsedMilliseconds} ms");
+        Console.WriteLine($"--> METRICS (OpenaAi-Embeddings) GetVector: {stopwatch.ElapsedMilliseconds} ms");
+        return vectorFloatArr; 
+    }
+
+    public async Task<float[]> GetVectorAzure(string question)
+    {
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        float[] vectorFloatArr =  await GetVector(azureEmbeddings, question);
+        stopwatch.Stop();
+        Console.WriteLine($"--> METRICS (Azure-Embeddings) GetVector: {stopwatch.ElapsedMilliseconds} ms");
         return vectorFloatArr;
+    }
+    public async Task<float[]> GetVector(IEmbeddingsProvider embeddingsProvider, string question)
+    {
+        // TODO: Add latency metric
+        return await embeddingsProvider.GetEmbeddingsAsync(question);
     }
 
     public async Task<string[]> GetRelevantContexts(float[] vectorFloatArr, string companyId)
