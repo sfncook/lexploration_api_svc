@@ -84,7 +84,8 @@ namespace SalesBotApi.Controllers
             Console.WriteLine($"contextDocs:{contextDocs.Length}");
             // Console.WriteLine(string.Join("','", contextDocs));
 
-            ChatCompletionResponse chatCompletionResponse = await openAiHttpRequestService.SubmitUserQuestion(
+            // TODO: Add metric latency call
+            AssistantResponse assistantResponse = await openAiHttpRequestService.SubmitUserQuestion(
                 req.user_msg, 
                 contextDocs, 
                 company, 
@@ -93,8 +94,6 @@ namespace SalesBotApi.Controllers
                 refinements,
                 messages
             );
-
-            AssistantResponse assistantResponse = chatCompletionResponse.choices[0].message.tool_calls[0].function.assistantResponse;
 
             SpeechResults speechResults;
             if(!req.mute) {
@@ -111,7 +110,7 @@ namespace SalesBotApi.Controllers
                 convoid,
                 companyid,
                 req.user_msg,
-                chatCompletionResponse
+                assistantResponse
             );
 
             //TODO: Send email
@@ -130,9 +129,8 @@ namespace SalesBotApi.Controllers
             string convoid,
             string company_id,
             string user_msg,
-            ChatCompletionResponse chatCompletionResponse
+            AssistantResponse assistantResponse
         ) {
-            AssistantResponse assistantResponse = chatCompletionResponse.choices[0].message.tool_calls[0].function.assistantResponse;
             Message message = new Message {
                 id = Guid.NewGuid().ToString(),
                 conversation_id = convoid,

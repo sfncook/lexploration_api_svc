@@ -15,7 +15,7 @@ public class OpenAiHttpRequestService
         _httpClient = new HttpClient();
     }
 
-    public async Task<ChatCompletionResponse> SubmitUserQuestion(
+    public async Task<AssistantResponse> SubmitUserQuestion(
         string userQuestion, 
         string[] contextDocs,
         Company company,
@@ -60,9 +60,9 @@ public class OpenAiHttpRequestService
             string responseString = await response.Content.ReadAsStringAsync();
             ChatCompletionResponse chatCompletionResponse = JsonConvert.DeserializeObject<ChatCompletionResponse>(responseString);
             string argumentsStr = chatCompletionResponse.choices[0].message.tool_calls[0].function.arguments;
-            chatCompletionResponse.choices[0].message.tool_calls[0].function.assistantResponse = JsonConvert.DeserializeObject<AssistantResponse>(argumentsStr);
+            AssistantResponse assistantResponse = JsonConvert.DeserializeObject<AssistantResponse>(argumentsStr);
 
-            return chatCompletionResponse;
+            return assistantResponse;
         }
     }
 
@@ -109,7 +109,6 @@ public class OpenAiHttpRequestService
     {
         public string name { get; set; }
         public string arguments { get; set; }
-        public AssistantResponse assistantResponse { get; set; }
     }
 
     public class Usage
