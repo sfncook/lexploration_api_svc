@@ -5,6 +5,8 @@ using SalesBotApi.Models;
 using Microsoft.Azure.Cosmos;
 using System.Collections.Generic;
 using static OpenAiHttpRequestService;
+using static AzureSpeechService;
+using Newtonsoft.Json;
 
 namespace SalesBotApi.Controllers
 {
@@ -16,29 +18,32 @@ namespace SalesBotApi.Controllers
         private readonly MemoryStoreService memoryStoreService;
         private readonly SharedQueriesService sharedQueriesService;
         private readonly Container messagesContainer;
+        private readonly AzureSpeechService azureSpeechService;
 
         public AiController(
             OpenAiHttpRequestService _openAiHttpRequestService, 
             MemoryStoreService _memoryStoreService,
             SharedQueriesService _sharedQueriesService,
-            CosmosDbService cosmosDbService
+            CosmosDbService cosmosDbService,
+            AzureSpeechService azureSpeechService
         )
         {
             openAiHttpRequestService = _openAiHttpRequestService;
             memoryStoreService = _memoryStoreService;
             sharedQueriesService = _sharedQueriesService;
             messagesContainer = cosmosDbService.MessagesContainer;
+            this.azureSpeechService = azureSpeechService;
         }
 
-        // POST: api/ai/submit_user_question
-        [HttpPost("submit_user_question")]
-        public async Task<IActionResult> SubmitUserQuestion(
+        // PUT: api/ai/submit_user_question
+        [HttpPut("submit_user_question")]
+        public async Task<ActionResult<SubmitResponse>> SubmitUserQuestion(
             [FromBody] SubmitRequest req,
             [FromQuery] string companyid,
             [FromQuery] string convoid
         )
         {
-            if(req==null || req.user_question==null){
+            if(req==null || req.user_msg==null){
                 return BadRequest();
             }
 
@@ -57,7 +62,7 @@ namespace SalesBotApi.Controllers
                 var chatbotTask = sharedQueriesService.GetFirstChatbotByCompanyId(companyid);
                 var refinementsTask = sharedQueriesService.GetRefinementsByCompanyId(companyid);
                 var msgsTask = sharedQueriesService.GetRecentMsgsForConvo(convoid, 4);
-                var vectorTask = memoryStoreService.GetVector(req.user_question);
+                var vectorTask = memoryStoreService.GetVector(req.user_msg);
 
                 await Task.WhenAll(companyTask, convoTask, chatbotTask, vectorTask);
 
@@ -80,7 +85,7 @@ namespace SalesBotApi.Controllers
             // Console.WriteLine(string.Join("','", contextDocs));
 
             ChatCompletionResponse chatCompletionResponse = await openAiHttpRequestService.SubmitUserQuestion(
-                req.user_question, 
+                req.user_msg, 
                 contextDocs, 
                 company, 
                 convo, 
@@ -89,14 +94,36 @@ namespace SalesBotApi.Controllers
                 messages
             );
 
+            AssistantResponse assistantResponse = chatCompletionResponse.choices[0].message.tool_calls[0].function.assistantResponse;
+
+            SpeechResults speechResults;
+            if(!req.mute) {
+                speechResults = await azureSpeechService.GetSpeech(assistantResponse.assistant_response);
+                // Console.WriteLine(JsonConvert.SerializeObject(speechResults));
+            } else {
+                speechResults = new SpeechResults() {
+                    lipsync = new LipSyncResults(),
+                    audio = ""
+                };
+            }
+
             await InsertNewMessage(
                 convoid,
                 companyid,
-                req.user_question,
+                req.user_msg,
                 chatCompletionResponse
             );
 
-            return Ok(chatCompletionResponse);
+            //TODO: Send email
+
+            SubmitResponse submitResponse = new SubmitResponse() {
+                assistant_response = new SubmitResponseAssistantResponse(){role="assistant", content=assistantResponse.assistant_response},
+                redirect_url = assistantResponse.redirect_url,
+                lipsync = speechResults.lipsync,
+                audio = speechResults.audio
+            };
+
+            return Ok(submitResponse);
         }
 
         private async Task InsertNewMessage(
@@ -126,9 +153,19 @@ namespace SalesBotApi.Controllers
 
     }//class AiController
     
+    public class SubmitResponse {
+        public SubmitResponseAssistantResponse assistant_response { get; set; }
+        public string redirect_url { get; set; }
+        public LipSyncResults lipsync { get; set; }
+        public string audio { get; set; }
+    }
+    public class SubmitResponseAssistantResponse {
+        public string role { get; set; }
+        public string content { get; set; }
+    }
 
     public class SubmitRequest {
-        public string user_question { get; set; }
+        public string user_msg { get; set; }
         public bool mute { get; set; }
     }
 
