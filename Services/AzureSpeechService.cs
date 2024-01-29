@@ -96,26 +96,26 @@ public class AzureSpeechService
                 });
             };
             await speechSynthesizer.SpeakTextAsync(text);
-
-            LipSyncResults lipSyncResults = new LipSyncResults();
-            double prev_offset = 0;
-            foreach(VisemeData vd in visemeData) {
-                LipSyncData lipSyncData = new LipSyncData() {
-                    start = prev_offset,
-                    end = vd.offset,
-                    target = vd.target,
-                    value = vd.value,
-                };
-                prev_offset = vd.offset;
-                lipSyncResults.AddMouthCue(lipSyncData);
-            }
-
-            SpeechResults speechResults = new SpeechResults() {
-                lipsync = lipSyncResults,
-                audio = await AudioFileToBase64Async(fullPath)
-            };
-            return speechResults;
         }
+
+        LipSyncResults lipSyncResults = new LipSyncResults();
+        double prev_offset = 0;
+        foreach(VisemeData vd in visemeData) {
+            LipSyncData lipSyncData = new LipSyncData() {
+                start = prev_offset,
+                end = vd.offset,
+                target = vd.target,
+                value = vd.value,
+            };
+            prev_offset = vd.offset;
+            lipSyncResults.AddMouthCue(lipSyncData);
+        }
+
+        SpeechResults speechResults = new SpeechResults() {
+            lipsync = lipSyncResults,
+            audio = await AudioFileToBase64Async(fullPath)
+        };
+        return speechResults;
     }
 
     private async Task<string> AudioFileToBase64Async(string filePath)
