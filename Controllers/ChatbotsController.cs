@@ -13,11 +13,17 @@ namespace SalesBotApi.Controllers
     {
         private readonly Container chatbotsContainer;
         private readonly SharedQueriesService sharedQueriesService;
+        private readonly InMemoryCacheService<Chatbot> cacheChatbot;
 
-        public ChatbotsController(CosmosDbService cosmosDbService, SharedQueriesService _sharedQueriesService)
+        public ChatbotsController(
+            CosmosDbService cosmosDbService, 
+            SharedQueriesService _sharedQueriesService,
+            InMemoryCacheService<Chatbot> cacheChatbot
+        )
         {
             chatbotsContainer = cosmosDbService.ChatbotsContainer;
             sharedQueriesService = _sharedQueriesService;
+            this.cacheChatbot = cacheChatbot;
         }
 
         // GET: api/chatbots
@@ -41,11 +47,11 @@ namespace SalesBotApi.Controllers
                 return BadRequest("Missing company_id parameter");
             }
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
-            IEnumerable<Chatbot> chatbots = await sharedQueriesService.GetChatbotsByCompanyId(company_id);
-            if(chatbots.Count() == 0) {
+            Chatbot chatbot = await sharedQueriesService.GetFirstChatbotByCompanyId(company_id);
+            if(chatbot == null) {
                 return NotFound();
             }
-            return Ok(chatbots.First());
+            return Ok(chatbot);
         }
 
         // PUT: api/chatbots
@@ -65,6 +71,8 @@ namespace SalesBotApi.Controllers
             {
                 chatbot.initialized = true;
                 await chatbotsContainer.ReplaceItemAsync(chatbot, chatbot.id);
+                cacheChatbot.Clear(chatbot.company_id);
+                Response.Headers.Add("Access-Control-Allow-Origin", "*");
                 return NoContent();
             }
             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)

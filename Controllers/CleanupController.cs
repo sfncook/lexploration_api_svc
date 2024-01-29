@@ -18,8 +18,17 @@ namespace SalesBotApi.Controllers
         private readonly Container messagesContainer;
         private readonly Container usersContainer;
         private readonly SharedQueriesService queriesSvc;
+        private readonly InMemoryCacheService<Company> cacheCompany;
+        private readonly InMemoryCacheService<Conversation> cacheConvo;
+        private readonly InMemoryCacheService<Chatbot> cacheChatbot;
 
-        public CleanupController(CosmosDbService cosmosDbService, SharedQueriesService _queriesSvc)
+        public CleanupController(
+            CosmosDbService cosmosDbService, 
+            SharedQueriesService _queriesSvc,
+            InMemoryCacheService<Company> cacheCompany,
+            InMemoryCacheService<Conversation> cacheConvo,
+            InMemoryCacheService<Chatbot> cacheChatbot
+        )
         {
             conversationsContainer = cosmosDbService.ConversationsContainer;
             companiesContainer = cosmosDbService.CompaniesContainer;
@@ -28,6 +37,9 @@ namespace SalesBotApi.Controllers
             messagesContainer = cosmosDbService.MessagesContainer;
             usersContainer = cosmosDbService.UsersContainer;
             queriesSvc = _queriesSvc;
+            this.cacheCompany = cacheCompany;
+            this.cacheConvo = cacheConvo;
+            this.cacheChatbot = cacheChatbot;
         }
 
         // DELETE: api/cleanup
@@ -65,6 +77,7 @@ namespace SalesBotApi.Controllers
                     if(do_delete) {
                         Console.WriteLine($"Deleting from Cosmos");
                         await companiesContainer.DeleteItemAsync<Company>(company.id, new PartitionKey(company.company_id));
+                        cacheCompany.Clear(company.company_id);
                     }
                 }
             }
@@ -85,6 +98,7 @@ namespace SalesBotApi.Controllers
                     if(do_delete) {
                         Console.WriteLine($"Deleting from Cosmos");
                         await conversationsContainer.DeleteItemAsync<Conversation>(convo.id, new PartitionKey(convo.id));
+                        cacheConvo.Clear(convo.id);
                     }
                 }
             }
@@ -97,6 +111,7 @@ namespace SalesBotApi.Controllers
                     if(do_delete) {
                         Console.WriteLine($"Deleting from Cosmos");
                         await chatbotsContainer.DeleteItemAsync<Chatbot>(chatbot.id, new PartitionKey(chatbot.company_id));
+                        cacheChatbot.Clear(chatbot.company_id);
                     }
                 }
             }

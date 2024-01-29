@@ -16,8 +16,18 @@ public class SharedQueriesService
     private readonly Container messagesContainer;
     private readonly Container usersContainer;
     private readonly Container refinementsContainer;
+    private readonly InMemoryCacheService<Company> cacheCompany;
+    private readonly InMemoryCacheService<Conversation> cacheConvo;
+    private readonly InMemoryCacheService<IEnumerable<Refinement>> cacheRefinements;
+    private readonly InMemoryCacheService<Chatbot> cacheChatbot;
 
-    public SharedQueriesService(CosmosDbService cosmosDbService)
+    public SharedQueriesService(
+        CosmosDbService cosmosDbService, 
+        InMemoryCacheService<Company> cacheCompany,
+        InMemoryCacheService<Conversation> cacheConvo,
+        InMemoryCacheService<IEnumerable<Refinement>> cacheRefinements,
+        InMemoryCacheService<Chatbot> cacheChatbot
+    )
     {
         conversationsContainer = cosmosDbService.ConversationsContainer;
         companiesContainer = cosmosDbService.CompaniesContainer;
@@ -26,6 +36,10 @@ public class SharedQueriesService
         messagesContainer = cosmosDbService.MessagesContainer;
         usersContainer = cosmosDbService.UsersContainer;
         refinementsContainer = cosmosDbService.RefinementsContainer;
+        this.cacheCompany = cacheCompany;
+        this.cacheConvo = cacheConvo;
+        this.cacheRefinements = cacheRefinements;
+        this.cacheChatbot = cacheChatbot;
     }
 
     public async Task<IEnumerable<T>> GetAllItems<T>(Container container)
@@ -76,30 +90,38 @@ public class SharedQueriesService
     public async Task<Conversation> GetConversationById(string convo_id)
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
-        var partitionKeyValue = new PartitionKey(convo_id);
-        var response = await conversationsContainer.ReadItemAsync<Conversation>(convo_id, partitionKeyValue);
+        Conversation convo = cacheConvo.Get(convo_id);
+        if(convo == null) {
+            var partitionKeyValue = new PartitionKey(convo_id);
+            var response = await conversationsContainer.ReadItemAsync<Conversation>(convo_id, partitionKeyValue);
+            convo = response.Resource;
+            cacheConvo.Set(convo_id, convo);
+        }
         stopwatch.Stop();
         Console.WriteLine($"--> METRICS (COSMOS) Load cosmos data GetConversationById: {stopwatch.ElapsedMilliseconds} ms");
-        return response.Resource;
+        return convo;
     }
 
     public async Task<Company> GetCompanyById(string company_id)
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
-        string sqlQueryText;
-        if (company_id == "all") sqlQueryText = $"SELECT * FROM c";
-        else sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
+        Company company = cacheCompany.Get(company_id);
+        if(company == null) {
+            string sqlQueryText;
+            if (company_id == "all") sqlQueryText = $"SELECT * FROM c";
+            else sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
 
-        QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
 
-        Company company = null;
-        using (FeedIterator<Company> feedIterator = companiesContainer.GetItemQueryIterator<Company>(queryDefinition))
-        {
-            while (feedIterator.HasMoreResults)
+            using (FeedIterator<Company> feedIterator = companiesContainer.GetItemQueryIterator<Company>(queryDefinition))
             {
-                FeedResponse<Company> response = await feedIterator.ReadNextAsync();
-                company = response.FirstOrDefault();
+                while (feedIterator.HasMoreResults)
+                {
+                    FeedResponse<Company> response = await feedIterator.ReadNextAsync();
+                    company = response.FirstOrDefault();
+                }
             }
+            cacheCompany.Set(company_id, company);
         }
         stopwatch.Stop();
         Console.WriteLine($"--> METRICS (COSMOS) Load cosmos data GetCompanyById: {stopwatch.ElapsedMilliseconds} ms");
@@ -123,26 +145,32 @@ public class SharedQueriesService
                 chatbots.AddRange(response.ToList());
             }
         }
+        foreach(Chatbot chatbot in chatbots) {
+            cacheChatbot.Set(company_id, chatbot);
+        }
         return chatbots;
     }
 
     public async Task<Chatbot> GetFirstChatbotByCompanyId(string company_id)
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
-        string sqlQueryText;
-        if (company_id == "all") sqlQueryText = $"SELECT * FROM c";
-        else sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
+        Chatbot chatbot = cacheChatbot.Get(company_id);
+        if(chatbot == null) {
+            string sqlQueryText;
+            if (company_id == "all") sqlQueryText = $"SELECT * FROM c";
+            else sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
 
-        QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
 
-        Chatbot chatbot = null;
-        using (FeedIterator<Chatbot> feedIterator = chatbotsContainer.GetItemQueryIterator<Chatbot>(queryDefinition))
-        {
-            while (feedIterator.HasMoreResults)
+            using (FeedIterator<Chatbot> feedIterator = chatbotsContainer.GetItemQueryIterator<Chatbot>(queryDefinition))
             {
-                FeedResponse<Chatbot> response = await feedIterator.ReadNextAsync();
-                chatbot = response.FirstOrDefault();
+                while (feedIterator.HasMoreResults)
+                {
+                    FeedResponse<Chatbot> response = await feedIterator.ReadNextAsync();
+                    chatbot = response.FirstOrDefault();
+                }
             }
+            cacheChatbot.Set(company_id, chatbot);
         }
         stopwatch.Stop();
         Console.WriteLine($"--> METRICS (COSMOS) Load cosmos data GetFirstChatbotByCompanyId: {stopwatch.ElapsedMilliseconds} ms");
@@ -152,25 +180,41 @@ public class SharedQueriesService
     public async Task<IEnumerable<Refinement>> GetRefinementsByCompanyId(string company_id)
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
-        string sqlQueryText;
-        if (company_id == "all") sqlQueryText = $"SELECT * FROM c";
-        else sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
+        var cachedData = cacheRefinements.Get(company_id);
+        List<Refinement> refinements = cachedData as List<Refinement>;
 
-        QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
-
-        List<Refinement> refinements = new List<Refinement>();
-        using (FeedIterator<Refinement> feedIterator = refinementsContainer.GetItemQueryIterator<Refinement>(queryDefinition))
+        if (refinements == null)
         {
-            while (feedIterator.HasMoreResults)
+            string sqlQueryText;
+            if (company_id == "all")
             {
-                FeedResponse<Refinement> response = await feedIterator.ReadNextAsync();
-                refinements.AddRange(response.ToList());
+                sqlQueryText = "SELECT * FROM c";
             }
+            else
+            {
+                sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
+            }
+
+            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+
+            refinements = new List<Refinement>();
+            using (FeedIterator<Refinement> feedIterator = refinementsContainer.GetItemQueryIterator<Refinement>(queryDefinition))
+            {
+                while (feedIterator.HasMoreResults)
+                {
+                    FeedResponse<Refinement> response = await feedIterator.ReadNextAsync();
+                    refinements.AddRange(response);
+                }
+            }
+            cacheRefinements.Set(company_id, refinements);
         }
+
         stopwatch.Stop();
         Console.WriteLine($"--> METRICS (COSMOS) Load cosmos data GetRefinementsByCompanyId: {stopwatch.ElapsedMilliseconds} ms");
+
         return refinements;
     }
+
 
 }
 

@@ -33,17 +33,23 @@ namespace SalesBotApi.Controllers
         private readonly IHttpClientFactory _clientFactory;
         private readonly Container companiesContainer;
         private readonly QueueService queueService;
+        private readonly SharedQueriesService sharedQueriesService;
+        private readonly InMemoryCacheService<Company> cacheCompany;
 
         public LinksController(
             CosmosDbService cosmosDbService,
             IHttpClientFactory clientFactory,
-            QueueService _queueService
+            QueueService _queueService,
+            SharedQueriesService sharedQueriesService,
+            InMemoryCacheService<Company> cacheCompany
         )
         {
             linksContainer = cosmosDbService.LinksContainer;
             _clientFactory = clientFactory;
             companiesContainer = cosmosDbService.CompaniesContainer;
             queueService = _queueService;
+            this.sharedQueriesService = sharedQueriesService;
+            this.cacheCompany = cacheCompany;
         }
 
         // GET: api/links
@@ -298,33 +304,14 @@ namespace SalesBotApi.Controllers
         }
 
         private async Task<ItemResponse<dynamic>> SetCompanyTraining(string company_id) {
-            Company company = await GetCompanyById(company_id);
+            Company company = await sharedQueriesService.GetCompanyById(company_id);
             List<PatchOperation> patchOperations = new List<PatchOperation>()
             {
                 PatchOperation.Add("/training", true)
             };
-            return await companiesContainer.PatchItemAsync<dynamic>(company.id, new PartitionKey(company_id), patchOperations);
-        }
-
-        private async Task<Company> GetCompanyById(string company_id)
-        {
-            string sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
-            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
-
-            FeedIterator<Company> feedIterator = companiesContainer.GetItemQueryIterator<Company>(queryDefinition);
-
-            Company company = null;
-            while (feedIterator.HasMoreResults)
-            {
-                FeedResponse<Company> response = await feedIterator.ReadNextAsync();
-                if (response.Count > 0)
-                {
-                    company = response.First();
-                    break;
-                }
-            }
-
-            return company;
+            var resp = await companiesContainer.PatchItemAsync<dynamic>(company.id, new PartitionKey(company_id), patchOperations);
+            cacheCompany.Clear(company_id);
+            return resp;
         }
 
         private async Task<IEnumerable<Link>> GetAllLinksForCompany(string company_id)

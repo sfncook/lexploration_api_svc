@@ -14,11 +14,19 @@ namespace SalesBotApi.Controllers
     {
         private readonly Container conversationsContainer;
         private readonly Container messagesContainer;
+        private readonly InMemoryCacheService<Conversation> cacheConvo;
+        private readonly SharedQueriesService sharedQueriesService;
 
-        public ConversationsController(CosmosDbService cosmosDbService)
+        public ConversationsController(
+            CosmosDbService cosmosDbService,
+            InMemoryCacheService<Conversation> cacheConvo,
+            SharedQueriesService sharedQueriesService
+        )
         {
             conversationsContainer = cosmosDbService.ConversationsContainer;
             messagesContainer = cosmosDbService.MessagesContainer;
+            this.cacheConvo = cacheConvo;
+            this.sharedQueriesService = sharedQueriesService;
         }
 
         // GET: api/conversations
@@ -58,6 +66,9 @@ namespace SalesBotApi.Controllers
                     conversations.AddRange(response.ToList());
                 }
             }
+            foreach(Conversation c in conversations) {
+                cacheConvo.Set(c.id, c);
+            }
 
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
             return conversations;
@@ -79,6 +90,7 @@ namespace SalesBotApi.Controllers
             }
 
             await conversationsContainer.DeleteItemAsync<Conversation>(convo_id, new PartitionKey(convo_id));
+            cacheConvo.Clear(convo_id);
 
             string sqlQueryText = $"SELECT * FROM m WHERE m.conversation_id = '{convo_id}'";
             QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
@@ -114,24 +126,10 @@ namespace SalesBotApi.Controllers
             if (convo_id == null) {
                 return BadRequest();
             }
-
-            string sqlQueryText = $"SELECT * FROM c WHERE c.id = '{convo_id}'  OFFSET 0 LIMIT 1";
-            Console.WriteLine(sqlQueryText);
-
-            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
-
-            List<Conversation> conversations = new List<Conversation>();
-            using (FeedIterator<Conversation> feedIterator = conversationsContainer.GetItemQueryIterator<Conversation>(queryDefinition))
-            {
-                while (feedIterator.HasMoreResults)
-                {
-                    FeedResponse<Conversation> response = await feedIterator.ReadNextAsync();
-                    conversations.AddRange(response.ToList());
-                }
-            }
+            Conversation conversation = await sharedQueriesService.GetConversationById(convo_id);
 
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
-            if(conversations.Count() > 0) return NoContent();
+            if(conversation != null) return NoContent();
             else return NotFound();
         }
     }

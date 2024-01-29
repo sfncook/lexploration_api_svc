@@ -12,6 +12,7 @@ using System;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.IO;
+using System.Collections.Generic;
 
 namespace SalesBotApi
 {
@@ -38,6 +39,10 @@ namespace SalesBotApi
             services.AddSingleton<EmailService>();
             services.AddSingleton<QueueService>();
             services.AddSingleton<SharedQueriesService>();
+            services.AddSingleton<InMemoryCacheService<Company>>();
+            services.AddSingleton<InMemoryCacheService<Conversation>>();
+            services.AddSingleton<InMemoryCacheService<Chatbot>>();
+            services.AddSingleton<InMemoryCacheService<IEnumerable<Refinement>>>();
             services.AddSingleton<JwtService>();
             services.AddSingleton<SemanticKernelService>();
             services.AddSingleton<OpenAiHttpRequestService>();

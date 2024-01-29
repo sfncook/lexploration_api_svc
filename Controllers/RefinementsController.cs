@@ -23,11 +23,17 @@ namespace SalesBotApi.Controllers
         
         private readonly Container refinementsContainer;
         private readonly SharedQueriesService sharedQueriesService;
+        private readonly InMemoryCacheService<IEnumerable<Refinement>> cacheRefinements;
 
-        public RefinementsController(CosmosDbService cosmosDbService, SharedQueriesService _sharedQueriesService)
+        public RefinementsController(
+            CosmosDbService cosmosDbService, 
+            SharedQueriesService _sharedQueriesService,
+            InMemoryCacheService<IEnumerable<Refinement>> cacheRefinements
+        )
         {
             refinementsContainer = cosmosDbService.RefinementsContainer;
             sharedQueriesService = _sharedQueriesService;
+            this.cacheRefinements = cacheRefinements;
         }
 
         // GET: api/refinements
@@ -37,23 +43,10 @@ namespace SalesBotApi.Controllers
         {
             JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
             string company_id = userData.company_id;
+
+            IEnumerable<Refinement> refinements = await sharedQueriesService.GetRefinementsByCompanyId(company_id);
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
-
-            IEnumerable<Chatbot> chatbots = await sharedQueriesService.GetChatbotsByCompanyId(company_id);
-            var chatbotIds = string.Join("','", chatbots.Select(chatbot => chatbot.id));
-            string sqlQueryText = $"SELECT * FROM c WHERE c.chatbot_id IN ('{chatbotIds}')";
-
-            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
-            List<Refinement> refinements = new List<Refinement>();
-            using (FeedIterator<Refinement> feedIterator = refinementsContainer.GetItemQueryIterator<Refinement>(queryDefinition))
-            {
-                while (feedIterator.HasMoreResults)
-                {
-                    FeedResponse<Refinement> response = await feedIterator.ReadNextAsync();
-                    refinements.AddRange(response.ToList());
-                }
-            }
-            return refinements;
+            return Ok(refinements);
         }
 
         // PUT: api/refinements
@@ -71,6 +64,7 @@ namespace SalesBotApi.Controllers
             try
             {
                 await refinementsContainer.ReplaceItemAsync(refinement, refinement.id);
+                cacheRefinements.Clear(refinement.company_id);
                 return NoContent();
             }
             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -133,6 +127,7 @@ namespace SalesBotApi.Controllers
             
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
             await refinementsContainer.CreateItemAsync(refinement, new PartitionKey(chatbot.id));
+            cacheRefinements.Clear(msg.company_id);
             return NoContent();
         }
     }

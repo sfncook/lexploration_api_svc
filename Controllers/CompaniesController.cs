@@ -18,15 +18,25 @@ namespace SalesBotApi.Controllers
         private readonly Container usersContainer;
         private readonly Container chatbotsContainer;
         private readonly ILogger<CompaniesController> logger;
+        private readonly InMemoryCacheService<Company> cacheCompany;
+        private readonly InMemoryCacheService<Chatbot> cacheChatbot;
+        private readonly SharedQueriesService sharedQueriesService;
 
         public CompaniesController(
-            CosmosDbService cosmosDbService, ILogger<CompaniesController> _logger
+            CosmosDbService cosmosDbService, 
+            ILogger<CompaniesController> _logger,
+            InMemoryCacheService<Company> cacheCompany,
+            SharedQueriesService sharedQueriesService,
+            InMemoryCacheService<Chatbot> cacheChatbot
             )
         {
             logger = _logger;
             companiesContainer = cosmosDbService.CompaniesContainer;
             usersContainer = cosmosDbService.UsersContainer;
             chatbotsContainer = cosmosDbService.ChatbotsContainer;
+            this.cacheCompany = cacheCompany;
+            this.sharedQueriesService = sharedQueriesService;
+            this.cacheChatbot = cacheChatbot;
         }
 
         // GET: api/companies
@@ -50,12 +60,12 @@ namespace SalesBotApi.Controllers
             {
                 return BadRequest("Missing company_id parameter");
             }
+            Company company = await sharedQueriesService.GetCompanyById(company_id);
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
-            IEnumerable<Company> companies = await GetCompanies(company_id);
-            if(companies.Count() == 0) {
+            if(company == null) {
                 return NotFound();
             }
-            return Ok(companies.First());
+            return Ok(company);
         }
 
         // POST: api/companies
@@ -70,7 +80,6 @@ namespace SalesBotApi.Controllers
 
             JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
             string user_id = userData.id;
-            string company_id = userData.company_id;
 
             UserWithPassword user = await GetUserById(user_id);
             Console.WriteLine(user.company_id);
@@ -90,7 +99,7 @@ namespace SalesBotApi.Controllers
 
             string companyId = Regex.Replace(newCompanyReq.name.ToLower(), @"[^a-z0-9]", "");
 
-            Company company = await GetCompanyById(companyId);
+            Company company = await sharedQueriesService.GetCompanyById(companyId);
             if(company != null)
             {
                 return Conflict("Company already exists");
@@ -111,6 +120,7 @@ namespace SalesBotApi.Controllers
             };
 
             await companiesContainer.CreateItemAsync(newCompany, new PartitionKey(companyId));
+            cacheCompany.Clear(companyId);
 
             Chatbot newChatbot = new Chatbot
             {
@@ -121,7 +131,7 @@ namespace SalesBotApi.Controllers
                 avatar_view = "headshot"
             };
             await chatbotsContainer.CreateItemAsync(newChatbot, new PartitionKey(companyId));
-
+            cacheChatbot.Clear(newChatbot.company_id);
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
             NewCompanyResponse newCompanyResponse = new NewCompanyResponse
             {
@@ -153,6 +163,7 @@ namespace SalesBotApi.Controllers
                     PatchOperation.Replace("/email_for_leads", company.email_for_leads)
                 };
                 await companiesContainer.PatchItemAsync<dynamic>(company.id, new PartitionKey(company.company_id), patchOperations);
+                cacheCompany.Clear(company.id);
 
                 Response.Headers.Add("Access-Control-Allow-Origin", "*");
                 return NoContent();
@@ -181,31 +192,15 @@ namespace SalesBotApi.Controllers
             return user;
         }
 
-        private async Task<Company> GetCompanyById(string company_id)
-        {
-            string sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
-            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
-
-            FeedIterator<Company> feedIterator = companiesContainer.GetItemQueryIterator<Company>(queryDefinition);
-
-            Company company = null;
-            while (feedIterator.HasMoreResults)
-            {
-                FeedResponse<Company> response = await feedIterator.ReadNextAsync();
-                if (response.Count > 0)
-                {
-                    company = response.First();
-                    break;
-                }
+        private async Task<IEnumerable<Company>> GetCompanies(string company_id) {
+            if (company_id != "all") {
+                Company[] singleCompany = new Company[1];
+                singleCompany[0] = await sharedQueriesService.GetCompanyById(company_id);
+                return singleCompany;
             }
 
-            return company;
-        }
-
-        private async Task<IEnumerable<Company>> GetCompanies(string company_id) {
-            string sqlQueryText;
-            if (company_id == "all") sqlQueryText = $"SELECT * FROM c";
-            else sqlQueryText = $"SELECT * FROM c WHERE c.company_id = '{company_id}'";
+            // Get "all" companies
+            string sqlQueryText = $"SELECT * FROM c";
 
             QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
 

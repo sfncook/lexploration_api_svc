@@ -159,7 +159,8 @@ namespace SalesBotApi.Controllers
                 };
             }
             stopwatch.Stop();
-            Console.WriteLine($"--> METRICS (Azure-Speech) Get speech response: {stopwatch.ElapsedMilliseconds} ms");
+            string mutedStr = mute ? "(muted)": "";
+            Console.WriteLine($"--> METRICS (Azure-Speech) Get speech response: {stopwatch.ElapsedMilliseconds} ms {mutedStr}");
             return speechResults;
         }
 
