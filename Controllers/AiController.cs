@@ -5,7 +5,6 @@ using SalesBotApi.Models;
 using Microsoft.Azure.Cosmos;
 using System.Collections.Generic;
 using static OpenAiHttpRequestService;
-using Message = SalesBotApi.Models.Message;
 
 namespace SalesBotApi.Controllers
 {
@@ -16,16 +15,19 @@ namespace SalesBotApi.Controllers
         private readonly OpenAiHttpRequestService openAiHttpRequestService;
         private readonly MemoryStoreService memoryStoreService;
         private readonly SharedQueriesService sharedQueriesService;
+        private readonly Container messagesContainer;
 
         public AiController(
             OpenAiHttpRequestService _openAiHttpRequestService, 
             MemoryStoreService _memoryStoreService,
-            SharedQueriesService _sharedQueriesService
+            SharedQueriesService _sharedQueriesService,
+            CosmosDbService cosmosDbService
         )
         {
             openAiHttpRequestService = _openAiHttpRequestService;
             memoryStoreService = _memoryStoreService;
             sharedQueriesService = _sharedQueriesService;
+            messagesContainer = cosmosDbService.MessagesContainer;
         }
 
         // POST: api/ai/submit_user_question
@@ -87,9 +89,42 @@ namespace SalesBotApi.Controllers
                 messages
             );
 
+            await InsertNewMessage(
+                convoid,
+                companyid,
+                req.user_question,
+                chatCompletionResponse
+            );
+
             return Ok(chatCompletionResponse);
         }
-    }
+
+        private async Task InsertNewMessage(
+            string convoid,
+            string company_id,
+            string user_msg,
+            ChatCompletionResponse chatCompletionResponse
+        ) {
+            AssistantResponse assistantResponse = chatCompletionResponse.choices[0].message.tool_calls[0].function.assistantResponse;
+            Message message = new Message {
+                id = Guid.NewGuid().ToString(),
+                conversation_id = convoid,
+                user_msg = user_msg,
+                assistant_response = assistantResponse.assistant_response,
+                company_id = company_id,
+                user_wants_to_be_contacted = assistantResponse.user_wants_to_be_contacted,
+                user_wants_to_install_the_demo = assistantResponse.user_wants_to_install_the_demo,
+                user_wants_to_schedule_call_with_sales_rep = assistantResponse.user_wants_to_schedule_call_with_sales_rep,
+                user_first_name = assistantResponse.user_first_name,
+                user_last_name = assistantResponse.user_last_name,
+                user_email = assistantResponse.user_email,
+                user_phone_number = assistantResponse.user_phone_number,
+                redirect_url = assistantResponse.redirect_url
+            };
+            await messagesContainer.CreateItemAsync(message, new PartitionKey(convoid));
+        }
+
+    }//class AiController
     
 
     public class SubmitRequest {
