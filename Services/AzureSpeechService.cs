@@ -115,6 +115,9 @@ public class AzureSpeechService
             lipsync = lipSyncResults,
             audio = await AudioFileToBase64Async(fullPath)
         };
+        
+        // Delete the temporary file
+        File.Delete(fullPath);
         return speechResults;
     }
 
