@@ -28,9 +28,9 @@
     "PineConeHost": "https://companies-dev-s1ptuxy.svc.apw5-4e34-81fa.pinecone.io"
   },
   "ConnectionStrings": {
-    "CosmosPrimaryAuthKey": "r5Mvqb5nf0G9uILKYTl0XTQHSMcxerm65qwm22ePQTIhQTxqnSPk8qosd2qaNjT0zx25XhK1i6jvACDbEcDLTg==",
-    "QueueConnectionStr": "DefaultEndpointsProtocol=https;AccountName=kelichatbot2;AccountKey=IgE1pLaUd5b+JOftL5wGogI1lnEQa0FoYK31yPeNwzcOeboqktRV7xntaEh8APmT+sXpX7niYIfC+AStHRnN3A==;EndpointSuffix=core.windows.net",
-    "OpenAiApiKey": "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",
-    "PineConeApiKey": "fa3b5160-cb16-4959-bef9-7b46cbe8c80f"
+    "CosmosPrimaryAuthKey": "r5...g==",
+    "QueueConnectionStr": "DefaultEndpointsProtocol=...;AccountName=...;AccountKey=Ig...A==;EndpointSuffix=...",
+    "OpenAiApiKey": "sk-...",
+    "PineConeApiKey": "00000000-0000-0000-0000-000000000000"
   }
 }
