@@ -34,13 +34,6 @@ public class WebpageProcessor
         // Chunk the text
         return ChunkText(textContent, chunkSize);
 
-        // var client = new HttpClient();
-        // var request = new HttpRequestMessage(HttpMethod.Get, "https://www.blacktiecasinoevents.com");
-        // client.DefaultRequestHeaders.Add("User-Agent", "PostmanRuntime/7.36.1");
-        // var response = await client.SendAsync(request);
-        // response.EnsureSuccessStatusCode();
-        // Console.WriteLine(await response.Content.ReadAsStringAsync());
-        // return new string[0];
     }
 
     private string[] ChunkText(string text, int chunkSize)
