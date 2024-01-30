@@ -3,16 +3,15 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using SalesBotApi.Models;
-using Microsoft.Azure.Storage;
 using Microsoft.AspNetCore.Diagnostics;
 using System;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.IO;
 using System.Collections.Generic;
+using SalesBotApi.Controllers;
 
 namespace SalesBotApi
 {
@@ -57,6 +56,7 @@ namespace SalesBotApi
             services.AddSingleton<OpenAIEmbeddings>();
             services.AddSingleton<WebpageProcessor>();
             services.AddSingleton<AzureSpeechService>();
+            services.AddSingleton<ConfigController>();
             services.AddHostedService<QueueBackgroundService>();
             services.AddHostedService<CacheInitializationService>();
             // services.AddApplicationInsightsTelemetry();
