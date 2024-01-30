@@ -125,6 +125,31 @@ namespace SalesBotApi.Controllers
             }
         }
 
+        // PUT: api/links/retrain
+        [HttpPut("retrain")]
+        [JwtAuthorize]
+        public async Task<IActionResult> RetrainLink([FromBody] Link link)
+        {
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string company_id = userData.company_id;
+            if(company_id != "all") {
+                if(link.company_id != company_id) {
+                    return Unauthorized();
+                }
+            }
+
+            List<PatchOperation> patchOperations = new List<PatchOperation>()
+            {
+                PatchOperation.Replace("/status", ""),
+                PatchOperation.Replace("/result", "")
+            };
+            await linksContainer.PatchItemAsync<dynamic>(link.id, new PartitionKey(link.company_id), patchOperations);
+            await queueService.EnqueueScrapLinksMessageAsync(JsonConvert.SerializeObject(link));
+
+            Response.Headers.Add("Access-Control-Allow-Origin", "*");
+            return NoContent();
+        }
+
         //DELETE THIS
         // POST: api/links/add
         [HttpPost("add")]
