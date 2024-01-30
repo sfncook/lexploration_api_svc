@@ -52,8 +52,10 @@ public class QueueBackgroundService : BackgroundService
                     Console.WriteLine("Exception");
                     Console.WriteLine(ex.ToString());
                 }
+            } else {
+                // When there is no message waiting then sleep between polls
+                await Task.Delay(10000);
             }
-            await Task.Delay(10000);
         }
     }
 
