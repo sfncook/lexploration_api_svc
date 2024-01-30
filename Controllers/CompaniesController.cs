@@ -163,7 +163,7 @@ namespace SalesBotApi.Controllers
                     PatchOperation.Replace("/email_for_leads", company.email_for_leads)
                 };
                 await companiesContainer.PatchItemAsync<dynamic>(company.id, new PartitionKey(company.company_id), patchOperations);
-                cacheCompany.Clear(company.id);
+                cacheCompany.Clear(company_id);
 
                 Response.Headers.Add("Access-Control-Allow-Origin", "*");
                 return NoContent();

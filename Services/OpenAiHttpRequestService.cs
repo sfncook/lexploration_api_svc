@@ -65,6 +65,7 @@ public class OpenAiHttpRequestService
             try {
                 assistantResponse = JsonConvert.DeserializeObject<AssistantResponse>(argumentsStr);
             } catch(JsonReaderException) {
+                // TODO add count metrics for how ofte this happens
                 string messageContent = chatCompletionResponse.choices[0].message.content;
                 if(messageContent!=null){
                     Console.WriteLine($"JSON Exception trying to parse assistant response argumentsStr:{argumentsStr} but message.content was NON NULL:{messageContent}");
