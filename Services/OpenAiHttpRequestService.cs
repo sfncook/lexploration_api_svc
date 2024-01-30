@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using Newtonsoft.Json;
 using System.Text;
+using System;
 
 public class OpenAiHttpRequestService
 {
@@ -43,7 +44,6 @@ public class OpenAiHttpRequestService
             .build();
 
         reqParams = EscapeStringForJson(reqParams);
-        // Console.WriteLine(reqParams);
 
         var content = new StringContent(reqParams, Encoding.UTF8, "application/json");
 
@@ -59,8 +59,23 @@ public class OpenAiHttpRequestService
             string responseString = await response.Content.ReadAsStringAsync();
             ChatCompletionResponse chatCompletionResponse = JsonConvert.DeserializeObject<ChatCompletionResponse>(responseString);
             string argumentsStr = chatCompletionResponse.choices[0].message.tool_calls[0].function.arguments;
-            AssistantResponse assistantResponse = JsonConvert.DeserializeObject<AssistantResponse>(argumentsStr);
-
+            AssistantResponse assistantResponse;
+            // Sometime we're getting JSON failure parsion the function arguments, so I'm assuming the LLM doesn't always call the function and sometimes it
+            //  screws up and just returns a string (message.content).  Hence this try-catch block.
+            try {
+                assistantResponse = JsonConvert.DeserializeObject<AssistantResponse>(argumentsStr);
+            } catch(JsonReaderException) {
+                string messageContent = chatCompletionResponse.choices[0].message.content;
+                if(messageContent!=null){
+                    Console.WriteLine($"JSON Exception trying to parse assistant response argumentsStr:{argumentsStr} but message.content was NON NULL:{messageContent}");
+                    assistantResponse = new AssistantResponse {
+                        assistant_response = messageContent
+                    };
+                } else {
+                    Console.WriteLine($"JSON Exception trying to parse assistant response argumentsStr:{argumentsStr} and message.content was NULL so throwing the exception :(");
+                    throw;
+                }
+            }
             return assistantResponse;
         }
     }

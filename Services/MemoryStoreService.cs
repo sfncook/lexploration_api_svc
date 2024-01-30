@@ -55,7 +55,6 @@ public class MemoryStoreService
         };
 
         string body = JsonConvert.SerializeObject(writeRequest);
-        Console.WriteLine(body);
         var content = new StringContent(body, Encoding.UTF8, "application/json");
 
         using (var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{pineconeHost}/vectors/upsert"))
@@ -67,7 +66,6 @@ public class MemoryStoreService
             response.EnsureSuccessStatusCode();
 
             var responseString = await response.Content.ReadAsStringAsync();
-            Console.WriteLine(responseString);
             return id;
         }
     }
