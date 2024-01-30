@@ -5,37 +5,29 @@ using System.Net.Http;
 using System.Text;
 using System.Linq;
 using System.Diagnostics;
+using Microsoft.Extensions.Options;
 
 public class MemoryStoreService
 {
     private readonly HttpClient _httpClient =  new HttpClient();
     private readonly AzureOpenAIEmbeddings azureEmbeddings;
     private readonly OpenAIEmbeddings openaiEmbeddings;
-    string apiKey = "fa3b5160-cb16-4959-bef9-7b46cbe8c80f";
-    string pineconeHost = "https://companies-dev-s1ptuxy.svc.apw5-4e34-81fa.pinecone.io";
+    string apiKey;
+    string pineconeHost;
 
-    public MemoryStoreService(AzureOpenAIEmbeddings azureEmbeddings, OpenAIEmbeddings openaiEmbeddings)
+    public MemoryStoreService(
+        AzureOpenAIEmbeddings azureEmbeddings, 
+        OpenAIEmbeddings openaiEmbeddings,
+        IOptions<MySettings> _mySettings,
+        IOptions<MyConnectionStrings> _myConnectionStrings
+    )
     {
+        pineconeHost = _mySettings.Value.PineConeHost;
+        apiKey = _myConnectionStrings.Value.PineConeApiKey;
         this.azureEmbeddings = azureEmbeddings;
         this.openaiEmbeddings = openaiEmbeddings;
     }
 
-        // curl -X POST "https://companies-x9v8jnv.svc.gcp-starter.pinecone.io/vectors/upsert" \
-        // -H "Api-Key: fcafedc4-cf32-4b4a-9d26-08fc227cf526" \
-        // -H 'Content-Type: application/json' \
-        // -d '{
-        //     "vectors": [
-        //     {
-        //         "id": "vec1", 
-        //         "values": [],
-        //         "metadata": {
-        //             "salesbot": "We sell brown horses, but no other colors of horses.",
-        //             "source": "https://example.com"
-        //         }
-        //     },
-        //     ],
-        //     "namespace": "ns1"
-        // }'
     public async Task<string> Write(string documentStr, string url, string company_id) {
         float[] vectorFltAr = await azureEmbeddings.GetEmbeddingsAsync(documentStr);
         // string vectorStr = string.Join(", ", vectorFltAr);
@@ -55,7 +47,7 @@ public class MemoryStoreService
         };
 
         Vector[] vectors = new Vector[1];
-        vectors[0] = vector; // Assigning vector to the first element of the array
+        vectors[0] = vector;
 
         WriteRequest writeRequest = new WriteRequest
         {
@@ -63,7 +55,6 @@ public class MemoryStoreService
             @namespace = company_id
         };
 
-        // {"vectors":[{"id":"vec2","values":[],"metadata":{"salesbot":"My name is Shawn","source":"https://example.com"}}]}
         string body = JsonConvert.SerializeObject(writeRequest);
         Console.WriteLine(body);
         var content = new StringContent(body, Encoding.UTF8, "application/json");

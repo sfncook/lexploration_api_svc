@@ -1,5 +1,6 @@
 using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using SalesBotApi.Models;
 using System;
@@ -11,17 +12,23 @@ public class QueueService
     private readonly QueueClient scrapeLinksQueueClient;
     private readonly QueueClient sendEmailQueueClient;
 
-    public QueueService()
+    public QueueService(
+        IOptions<MySettings> _mySettings,
+        IOptions<MyConnectionStrings> _myConnectionStrings
+    )
     {
+        MySettings mySettings = _mySettings.Value;
+        MyConnectionStrings myConnectionStrings = _myConnectionStrings.Value;
+
         scrapeLinksQueueClient = new QueueClient(
-            "DefaultEndpointsProtocol=https;AccountName=kelichatbot2;AccountKey=IgE1pLaUd5b+JOftL5wGogI1lnEQa0FoYK31yPeNwzcOeboqktRV7xntaEh8APmT+sXpX7niYIfC+AStHRnN3A==;EndpointSuffix=core.windows.net",
-            "scrape-links-dev"
+            myConnectionStrings.QueueConnectionStr,
+            mySettings.QueueLinks
         );
         scrapeLinksQueueClient.CreateIfNotExists();
 
         sendEmailQueueClient = new QueueClient(
-            "DefaultEndpointsProtocol=https;AccountName=kelichatbot2;AccountKey=IgE1pLaUd5b+JOftL5wGogI1lnEQa0FoYK31yPeNwzcOeboqktRV7xntaEh8APmT+sXpX7niYIfC+AStHRnN3A==;EndpointSuffix=core.windows.net",
-            "send-email"
+            myConnectionStrings.QueueConnectionStr,
+            mySettings.QueueEmails
         );
         sendEmailQueueClient.CreateIfNotExists();
     }

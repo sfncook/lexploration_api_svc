@@ -2,6 +2,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
 public class OpenAIEmbeddings : IEmbeddingsProvider
@@ -9,9 +10,9 @@ public class OpenAIEmbeddings : IEmbeddingsProvider
     private readonly HttpClient _httpClient;
     private readonly string _apiKey;
 
-    public OpenAIEmbeddings()
+    public OpenAIEmbeddings(IOptions<MyConnectionStrings> _myConnectionStrings)
     {
-        _apiKey = "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";
+        _apiKey = _myConnectionStrings.Value.OpenAiApiKey;
         _httpClient = new HttpClient();
     }
 

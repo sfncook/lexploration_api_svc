@@ -1,5 +1,5 @@
 using Microsoft.Azure.Cosmos;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 public class CosmosDbService
 {
@@ -11,23 +11,28 @@ public class CosmosDbService
     public Container LinksContainer { get; }
     public Container RefinementsContainer { get; }
 
-    public CosmosDbService(IConfiguration configuration)
+    public CosmosDbService(
+        IOptions<MySettings> _mySettings,
+        IOptions<MyConnectionStrings> _myConnectionStrings
+    )
     {
+        MySettings mySettings = _mySettings.Value;
+        MyConnectionStrings myConnectionStrings = _myConnectionStrings.Value;
         var client = new CosmosClient(
-            "https://keli-chatbot-02.documents.azure.com:443/",
-            "r5Mvqb5nf0G9uILKYTl0XTQHSMcxerm65qwm22ePQTIhQTxqnSPk8qosd2qaNjT0zx25XhK1i6jvACDbEcDLTg==",
+            mySettings.CosmosUri,
+            myConnectionStrings.CosmosPrimaryAuthKey,
             new CosmosClientOptions
             {
-                ApplicationRegion = Regions.EastUS2,
+                ApplicationRegion = Regions.WestUS,
             });
 
         var database = client.GetDatabase("keli");
-        MessagesContainer = database.GetContainer("messages_sales");
-        ConversationsContainer = database.GetContainer("conversations_sales");
-        CompaniesContainer = database.GetContainer("companies_sales");
-        ChatbotsContainer = database.GetContainer("chatbots_sales");
-        UsersContainer = database.GetContainer("users_sales");
-        LinksContainer = database.GetContainer("links_sales");
-        RefinementsContainer = database.GetContainer("refinements_sales");
+        MessagesContainer = database.GetContainer(mySettings.TableMessages);
+        ConversationsContainer = database.GetContainer(mySettings.TableConversations);
+        CompaniesContainer = database.GetContainer(mySettings.TableCompanies);
+        ChatbotsContainer = database.GetContainer(mySettings.TableChatbots);
+        UsersContainer = database.GetContainer(mySettings.TableUsers);
+        LinksContainer = database.GetContainer(mySettings.TableLinks);
+        RefinementsContainer = database.GetContainer(mySettings.TableRefinements);
     }
 }
