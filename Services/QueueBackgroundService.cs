@@ -4,8 +4,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Storage.Queues.Models;
-using Microsoft.ApplicationInsights;
-using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using SalesBotApi.Models;

@@ -29,9 +29,8 @@ public class MemoryStoreService
     }
 
     public async Task<string> Write(string documentStr, string url, string company_id) {
-        float[] vectorFltAr = await azureEmbeddings.GetEmbeddingsAsync(documentStr);
-        // string vectorStr = string.Join(", ", vectorFltAr);
-
+        float[] vectorFltAr = await openaiEmbeddings.GetEmbeddingsAsync(documentStr);
+        
         string id = Guid.NewGuid().ToString();
         Metadata metadata = new Metadata
         {

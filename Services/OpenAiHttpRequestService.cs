@@ -1,5 +1,4 @@
 using System.Threading.Tasks;
-using System;
 using SalesBotApi.Models;
 using System.Collections.Generic;
 using System.Net.Http;

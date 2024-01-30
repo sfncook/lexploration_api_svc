@@ -16,14 +16,6 @@ public class OpenAIEmbeddings : IEmbeddingsProvider
         _httpClient = new HttpClient();
     }
 
-
-    // curl https://api.openai.com/v1/embeddings \
-    // -H "Content-Type: application/json" \
-    // -H "Authorization: Bearer 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" \
-    // -d '{
-    //     "input": "Your text string goes here",
-    //     "model": "text-embedding-3-small"
-    // }'
     public async Task<float[]> GetEmbeddingsAsync(string text)
     {
         var requestBody = new
@@ -34,7 +26,6 @@ public class OpenAIEmbeddings : IEmbeddingsProvider
 
         var content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
 
-        // Replace HttpMethod.Get with HttpMethod.Post
         using (var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"https://api.openai.com/v1/embeddings"))
         {
             requestMessage.Content = content;
@@ -49,28 +40,6 @@ public class OpenAIEmbeddings : IEmbeddingsProvider
             return embeddingsResponse.data.FirstOrDefault()?.embedding;
         }
     }
-
-
-// {
-//   "object": "list",
-//   "data": [
-//     {
-//       "object": "embedding",
-//       "index": 0,
-//       "embedding": [
-//          ...   
-//         -0.015327491,
-//         -0.019378418,
-//         -0.0028842222
-//       ]
-//     }
-//   ],
-//   "model": "/var/azureml-app/azureml-models/text-embedding-ada-002-8k/584175/",
-//   "usage": {
-//     "prompt_tokens": 8,
-//     "total_tokens": 8
-//   }
-// }
 
     private class EmbeddingsResponse
     {
