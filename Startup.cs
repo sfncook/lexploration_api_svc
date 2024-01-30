@@ -29,6 +29,12 @@ namespace SalesBotApi
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddLogging();
+
+            IConfigurationSection mySettingsSection = Configuration.GetSection("AppSettings");
+            services.Configure<MySettings>(mySettingsSection);
+            IConfigurationSection connectionStringsSection = Configuration.GetSection("ConnectionStrings");
+            services.Configure<MyConnectionStrings>(connectionStringsSection);
+
             services.AddControllers();
 
             services.AddSwaggerGen(c =>

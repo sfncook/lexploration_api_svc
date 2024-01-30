@@ -8,6 +8,7 @@ using static OpenAiHttpRequestService;
 using static AzureSpeechService;
 using Newtonsoft.Json;
 using System.Diagnostics;
+using Microsoft.Extensions.Options;
 
 namespace SalesBotApi.Controllers
 {
@@ -21,6 +22,8 @@ namespace SalesBotApi.Controllers
         private readonly Container messagesContainer;
         private readonly AzureSpeechService azureSpeechService;
         private readonly EmailService emailService;
+        private readonly MySettings _mySettings;
+        private readonly MyConnectionStrings myConnectionStrings;
 
         public AiController(
             OpenAiHttpRequestService _openAiHttpRequestService, 
@@ -28,7 +31,9 @@ namespace SalesBotApi.Controllers
             SharedQueriesService _sharedQueriesService,
             CosmosDbService cosmosDbService,
             AzureSpeechService azureSpeechService,
-            EmailService emailService
+            EmailService emailService,
+            IOptions<MySettings> mySettings,
+            IOptions<MyConnectionStrings> myConnectionStrings
         )
         {
             openAiHttpRequestService = _openAiHttpRequestService;
@@ -37,6 +42,21 @@ namespace SalesBotApi.Controllers
             messagesContainer = cosmosDbService.MessagesContainer;
             this.azureSpeechService = azureSpeechService;
             this.emailService = emailService;
+            _mySettings = mySettings.Value;
+            this.myConnectionStrings = myConnectionStrings.Value;
+        }
+
+
+        // GET: api/ai
+        [HttpGet]
+        public ActionResult<string> Debugging()
+        {
+            return $@"
+                _mySettings.Setting1:{_mySettings.Setting1} 
+                _mySettings.Setting2:{_mySettings.Setting2}
+                _mySettings.Setting3:{_mySettings.Setting3}
+                myConnectionStrings.ConnectionFoo:{myConnectionStrings.ConnectionFoo}
+            ";
         }
 
         // PUT: api/ai/submit_user_question
