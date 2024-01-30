@@ -17,17 +17,20 @@ namespace SalesBotApi.Controllers
         private readonly Container linksContainer;
         private readonly Container messagesContainer;
         private readonly Container usersContainer;
+        private readonly Container refinementsContainer;
         private readonly SharedQueriesService queriesSvc;
         private readonly InMemoryCacheService<Company> cacheCompany;
         private readonly InMemoryCacheService<Conversation> cacheConvo;
         private readonly InMemoryCacheService<Chatbot> cacheChatbot;
+        private readonly InMemoryCacheService<IEnumerable<Refinement>> cacheRefinements;
 
         public CleanupController(
             CosmosDbService cosmosDbService, 
             SharedQueriesService _queriesSvc,
             InMemoryCacheService<Company> cacheCompany,
             InMemoryCacheService<Conversation> cacheConvo,
-            InMemoryCacheService<Chatbot> cacheChatbot
+            InMemoryCacheService<Chatbot> cacheChatbot,
+            InMemoryCacheService<IEnumerable<Refinement>> cacheRefinements
         )
         {
             conversationsContainer = cosmosDbService.ConversationsContainer;
@@ -36,10 +39,12 @@ namespace SalesBotApi.Controllers
             linksContainer = cosmosDbService.LinksContainer;
             messagesContainer = cosmosDbService.MessagesContainer;
             usersContainer = cosmosDbService.UsersContainer;
+            refinementsContainer = cosmosDbService.RefinementsContainer;
             queriesSvc = _queriesSvc;
             this.cacheCompany = cacheCompany;
             this.cacheConvo = cacheConvo;
             this.cacheChatbot = cacheChatbot;
+            this.cacheRefinements = cacheRefinements;
         }
 
         // DELETE: api/cleanup
@@ -59,8 +64,10 @@ namespace SalesBotApi.Controllers
             IEnumerable<Chatbot> chatbots = await queriesSvc.GetAllItems<Chatbot>(chatbotsContainer);
             IEnumerable<Link> links = await queriesSvc.GetAllItems<Link>(linksContainer);
             IEnumerable<Message> messages = await queriesSvc.GetAllItems<Message>(messagesContainer);
+            IEnumerable<Refinement> refinements = await queriesSvc.GetAllItems<Refinement>(refinementsContainer);
             IEnumerable<UserWithJwt> users = await queriesSvc.GetAllItems<UserWithJwt>(usersContainer);
 
+            // *** Delete Companies ***
             HashSet<string> companyIdsWithUsers = new HashSet<string>();
             foreach (UserWithJwt user in users)
             {
@@ -82,14 +89,15 @@ namespace SalesBotApi.Controllers
                 }
             }
 
+            // Get remaining companies
             companies = await queriesSvc.GetAllItems<Company>(companiesContainer);
-
             HashSet<string> companyIds = new HashSet<string>();
             foreach (Company company in companies)
             {
                 companyIds.Add(company.company_id);
             }
 
+            // *** Delete conversations ***
             foreach (var convo in conversations)
             {
                 if (!companyIds.Contains(convo.company_id.ToString()))
@@ -103,6 +111,7 @@ namespace SalesBotApi.Controllers
                 }
             }
 
+            // *** Delete Chatbots ***
             foreach (var chatbot in chatbots)
             {
                 if (!companyIds.Contains(chatbot.company_id.ToString()))
@@ -115,7 +124,8 @@ namespace SalesBotApi.Controllers
                     }
                 }
             }
-
+            
+            // *** Delete Links ***
             foreach (var link in links)
             {
                 if (!companyIds.Contains(link.company_id.ToString()))
@@ -128,14 +138,14 @@ namespace SalesBotApi.Controllers
                 }
             }
 
+
+            // *** Delete Messages ***
             IEnumerable<Conversation> remainingConversations = await queriesSvc.GetAllItems<Conversation>(conversationsContainer);
             HashSet<string> remainingConversationIds = new HashSet<string>();
             foreach (Conversation convo in remainingConversations)
             {
                 remainingConversationIds.Add(convo.id);
             }
-
-
             foreach (var msg in messages)
             {
                 if (!remainingConversationIds.Contains(msg.conversation_id.ToString()))
@@ -147,6 +157,22 @@ namespace SalesBotApi.Controllers
                     }
                 }
             }
+
+            // *** Delete Refinements ***
+            foreach (var refinement in refinements)
+            {
+                if (!remainingConversationIds.Contains(refinement.conversation_id.ToString()))
+                {
+                    Console.WriteLine($"Deleting refinement with ID: {refinement.id}, Conversation ID: {refinement.conversation_id}");
+                    if(do_delete) {
+                        Console.WriteLine($"Deleting from Cosmos");
+                        await refinementsContainer.DeleteItemAsync<Refinement>(refinement.id, new PartitionKey(refinement.chatbot_id));
+                        cacheRefinements.Clear(refinement.company_id);
+                    }
+                }
+            }
+
+
             return new OkResult();
         }
     }
