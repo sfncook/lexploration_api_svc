@@ -39,7 +39,7 @@ public class OpenAiHttpRequestService
 
         OpenAiRequestBuilder openAiRequestBuilder = new OpenAiRequestBuilder();
         string reqParams = openAiRequestBuilder
-            .setModel("gpt-3.5-turbo")
+            .setModel(chatbot.llm_model)
             .setUserQuestion(userQuestion)
             .setSystemPrompt(prompt)
             .setMessages(messages)

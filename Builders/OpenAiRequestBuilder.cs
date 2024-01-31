@@ -122,14 +122,18 @@ public class OpenAiRequestBuilder
 
         var sortedMessages = messages.OrderBy(message => message._ts);
         foreach(Message msg in sortedMessages) {
-            allMsgs.Add(new GptMessage{
-                role = "user", 
-                content = msg.user_msg
-            });
-            allMsgs.Add(new GptMessage{
-                role = "assistant", 
-                content = msg.assistant_response
-            });
+            if(msg.user_msg!=null) {
+                allMsgs.Add(new GptMessage{
+                    role = "user", 
+                    content = msg.user_msg
+                });
+            }
+            if(msg.assistant_response != null) {
+                allMsgs.Add(new GptMessage{
+                    role = "assistant", 
+                    content = msg.assistant_response
+                });
+            }
         }
 
         allMsgs.Add(new GptMessage{
