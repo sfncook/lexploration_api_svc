@@ -128,7 +128,8 @@ namespace SalesBotApi.Controllers
                 company_id = companyId,
                 llm_model = "keli-35-turbo",
                 greeting = $"Hi! I'm Keli! I can answer your questions about {newCompany.name}.",
-                avatar_view = "headshot"
+                avatar_view = "headshot",
+                role_sales = true
             };
             await chatbotsContainer.CreateItemAsync(newChatbot, new PartitionKey(companyId));
             cacheChatbot.Clear(newChatbot.company_id);
