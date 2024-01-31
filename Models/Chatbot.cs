@@ -26,5 +26,8 @@ namespace SalesBotApi.Models
         public bool initialized { get; set; }
         public RedirectPrompts[] redirect_prompts { get; set; }
         public AnsweredQuestion[] answered_questions { get; set; }
+        public bool role_sales { get; set; }
+        public bool role_support { get; set; }
+        public string support_email { get; set; }
     }
 }

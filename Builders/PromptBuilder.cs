@@ -38,17 +38,20 @@ public class PromptBuilder
     }
 
     private readonly string promptTemplate = @"
-You are a friendly and professional inbound sales representative for the company named ""{company_name}""
-Here is the company description: ""{company_desc}""
+You are a friendly and professional AI chatbot named ""Keli"".
+You are an official representative for the company named ""{company_name}"".
+Here is the company description: ""{company_desc}"".
 
 You should be helpful and always very respectful and respond in a professional manner.
 You should ALWAYS ONLY answer any questions that are relevant to this company.
 You should NEVER engage in any conversation that is NOT relevant to this company.
 If the user tries to ask questions unrelated to this company you should politely decline to answer
-that question and offer to help answer questions about this company instead.
+ that question and offer to help answer questions about this company instead.
 
 If you add any hyperlinks to your response they should always be in markdown format like this: [Display Text](https://example.com)
 
+{role_support}
+{role_sales}
 {show_call_to_action}
 {calendar_link}
 {collect_user_info}
@@ -73,19 +76,54 @@ You should ALWAYS ALWAYS ALWAYS call the AssistantResponseToJson function with t
         prompt = replaceInPrompt(prompt, "context_docs", string.Join("',\n'", contextDocs));
         prompt = replaceInPrompt(prompt, "user_question", userQuestion);
 
-        if(chatbot.show_call_to_action){
+        // *** ROLE: SUPPORT ***
+        if(chatbot.role_support) {
+            prompt = replaceInPrompt(prompt, "role_support", @"
+If the user is a preexisting customer or has questions about a service or product they have already purchased then you
+ should attempt to provide technical and customer support as much as is possible.
+If the user is getting frustrated or hostile then immediately suggest that they give you their contact information so you
+ can connect them with a human customer support agent.
+ If they tell you their first and/or last name then you should provide that in your response in the JSON fields named 
+ 'user_first_name', 'user_last_name', 'user_email', or 'user_phone_number' respectively.
+ If the user wants to be contacted by a company rep then set the JSON field named 'user_wants_to_be_contacted' to true.
+\n");
+        } else {
+            prompt = replaceInPrompt(prompt, "role_support", @"
+You should NOT attempt to provide support for preexisting customers or their technical problems.
+If they need help that is support related then tell them to contact the company.
+\n");
+        }
+
+
+
+        // *** ROLE: SALES REP ***
+        if(chatbot.role_sales) {
+            prompt = replaceInPrompt(prompt, "role_sales", @"
+If the user is a new customer then you should behave as a sales represenative would.
+Try to be engaging and friendly.
+Try to understand what their needs are as they relate to this company's products or services.
+Sell the company.
+\n");
+        } else {
+            prompt = replaceInPrompt(prompt, "role_sales", @"
+You should NOT attempt to sell any products or services.
+If they need help that is support related then tell them to contact the company.
+\n");
+        }
+
+        if(chatbot.role_sales && chatbot.show_call_to_action){
             prompt = replaceInPrompt(prompt, "show_call_to_action", "Try to get the user to click the 'Contact' button.  This button will be positioned on the screen right below where they type and read your replies.\n");
         } else {
             prompt = replaceInPrompt(prompt, "show_call_to_action", "");
         }
 
-        if(chatbot.redirect_to_calendar){
+        if(chatbot.role_sales && chatbot.redirect_to_calendar){
             prompt = replaceInPrompt(prompt, "calendar_link", $"Try to get the user to schedule a call with a sales rep.  If the user says they wish to schedule a call with the sales rep then you can ask them to click on this link which you should include in markdown format in your response: {chatbot.calendar_link}\n");
         } else {
             prompt = replaceInPrompt(prompt, "calendar_link", "");
         }
 
-        if(chatbot.collect_user_info){
+        if(chatbot.role_sales && chatbot.collect_user_info){
             prompt = replaceInPrompt(prompt, "collect_user_info", @"
 You should try to get them to tell you their name.  If they tell you their first and/or last name then you 
 should provide that in your response in the JSON fields named 'user_first_name' or 'user_last_name', 

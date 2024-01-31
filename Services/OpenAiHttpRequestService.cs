@@ -35,6 +35,8 @@ public class OpenAiHttpRequestService
             .setRefinements(refinements)
             .build();
 
+        Console.WriteLine(prompt);
+
         OpenAiRequestBuilder openAiRequestBuilder = new OpenAiRequestBuilder();
         string reqParams = openAiRequestBuilder
             .setModel("gpt-3.5-turbo")
