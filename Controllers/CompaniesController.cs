@@ -124,6 +124,7 @@ namespace SalesBotApi.Controllers
             await companiesContainer.CreateItemAsync(newCompany, new PartitionKey(companyId));
             cacheCompany.Clear(companyId);
 
+            // These are the "DEFAULT" values for new chatbots
             Chatbot newChatbot = new Chatbot
             {
                 id = Guid.NewGuid().ToString(),
@@ -131,7 +132,8 @@ namespace SalesBotApi.Controllers
                 llm_model = "gpt-3.5-turbo-1106",
                 greeting = $"Hi! I'm Keli! I can answer your questions about {newCompany.name}.",
                 avatar_view = "headshot",
-                role_sales = true
+                role_sales = true,
+                role_support = true
             };
             await chatbotsContainer.CreateItemAsync(newChatbot, new PartitionKey(companyId));
             cacheChatbot.Clear(newChatbot.company_id);
@@ -175,40 +177,6 @@ namespace SalesBotApi.Controllers
             {
                 return NotFound();
             }
-        }
-
-        // GET: api/companies/test
-        [HttpGet("test")]
-        public async Task<IActionResult> Test()
-        {
-            var smtpClient = new SmtpClient("smtp.titan.email")
-            {
-                Port = 465,
-                Credentials = new NetworkCredential("hello@keli.ai", "tQPC%LNa9TwaZ3"),
-                EnableSsl = true,
-            };
-
-            // Construct the email
-            var mailMessage = new MailMessage
-            {
-                From = new MailAddress("scook@keli.ai"),
-                Subject = "Hello world!",
-                Body = "This is a message from C# code",
-                IsBodyHtml = true,
-            };
-            mailMessage.To.Add("sfncook+001@gmail.com");
-
-            try
-            {
-                // Send the email
-                smtpClient.Send(mailMessage);
-                Console.WriteLine("Email sent successfully.");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error sending email. " + ex.Message);
-            }
-            return Ok();
         }
 
         private async Task<UserWithPassword> GetUserById(string user_id) {
