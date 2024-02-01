@@ -37,83 +37,102 @@ public class EmailService
         string convo_id
     ) {
             await SendEmail(
-                "hello@saleschat.bot", 
-                "SalesChatbot", 
+                "hello@keli.ai", 
+                "Keli.AI",
                 recipient_email, 
-                "New website lead from SalesChat.bot", 
+                "New website lead from Keli.AI", 
                 $@"
 Hello!
 
-Good news -- you have a new website lead from SalesChat.bot. Here is their information:
+Good news -- you have a new website lead from Keli.AI. Here is their information:
 
 First Name: {assistantResponse.user_first_name}
 Last Name: {assistantResponse.user_last_name}
 Email:  {assistantResponse.user_email}
 Phone: {assistantResponse.user_phone_number}
-Conversation history: https://admin.saleschat.bot/messages?convo_id={convo_id}
+Conversation history: https://admin.keli.ai/messages?convo_id={convo_id}
 
 Please reach out to them as soon as possible.
 
 Thank you,
-The SalesChat.bot team
-                "
+The Keli.AI team
+"
             );
         }
 
     public async Task SendRegistrationEmail(string recipient_email) {
             await SendEmail(
-                "hello@saleschat.bot", 
-                "SalesChatbot", 
+                "hello@keli.ai", 
+                "Keli.AI",
                 recipient_email, 
-                "SalesChat.bot registration received", 
+                "Keli.AI registration received", 
                 @"
 Hello! 
 
-Thanks for registering for a free trial account at SalesChat.bot. We will approve your account as quickly as possible (usually within 24 hours) and let you know. If you haven't heard from us within a few days, feel free to reply to this email. 
+Thanks for registering for a free trial account at Keli.AI. We will approve your account as quickly as possible (usually within 24 hours) and let you know. If you haven't heard from us within a few days, feel free to reply to this email. 
 
 Thank you,
-The SalesChat.bot team
-                "
+The Keli.AI team
+"
             );
         }
 
     public async Task SendRegistrationApprovalEmail(string recipient_email) {
             await SendEmail(
-                "hello@saleschat.bot", 
-                "SalesChatbot", 
+                "hello@keli.ai", 
+                "Keli.AI",
                 recipient_email, 
-                "Your SalesChat.bot registration was approved", 
+                "Your Keli.AI registration was approved", 
                 @"
 Hello! 
 
-Good news -- your SalesChat.bot registration was approved, and your account is now active. Please log in here: https://admin.saleschat.bot
+Good news -- your Keli.AI registration was approved, and your account is now active. Please log in here: https://admin.keli.ai
 
-See our Getting Started guide at https://docs.saleschat.bot
+See our Getting Started guide at https://docs.keli.ai
 
 If you have any questions, feel free to reply to this email.
 
 Thank you,
-The SalesChat.bot team
-                "
+Keli.AIt team
+"
             );
         }
 
         public async Task SendRegistrationDeniedEmail(string recipient_email) {
             await SendEmail(
-                "hello@saleschat.bot", 
-                "SalesChatbot", 
+                "hello@keli.ai", 
+                "Keli.AI", 
                 recipient_email, 
-                "Your SalesChat.bot registration was declined", 
+                "Your Keli.AI registration was declined", 
                 @"
 Hello! 
 
-Unfortunately, your SalesChat.bot registration was declined. Be sure to use a company email address when registering for an account. We don't accept personal emails, e.g. Gmail, Yahoo, Hotmail, etc. See here for more information: https://docs.saleschat.bot
+Unfortunately, your Keli.AI registration was declined. Be sure to use a company email address when registering for an account. We don't accept personal emails, e.g. Gmail, Yahoo, Hotmail, etc. See here for more information: https://docs.keli.ai
 
 If you have any questions, feel free to reply to this email.
 
 Thank you,
-The SalesChat.bot team
-                "
+The Keli.AI team
+"
+            );
+        }
+
+        public async Task SendNewRegistrationAdminEmail() {
+            await SendEmail(
+                "hello@keli.ai", 
+                "Keli.AI", 
+                "sfncook@gmail.com,kelidotai@gmail.com", 
+                "Keli.AI: New account registration", 
+                @"
+Hello! 
+
+A new account has been registered in the Keli.AI Admin Portal.  It is waiting for approval.
+
+https://admin.keli.ai/users
+
+Thank you,
+The Keli.AI team
+"
             );
         }
 

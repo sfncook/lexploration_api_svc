@@ -73,8 +73,14 @@ namespace SalesBotApi.Controllers
             };
 
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
-            await usersContainer.CreateItemAsync(newUser, new PartitionKey(companyId));
-            await emailService.SendRegistrationEmail(loginReq.user_name);
+            var newUserTask = usersContainer.CreateItemAsync(newUser, new PartitionKey(companyId));
+            var regEmailTask = emailService.SendRegistrationEmail(loginReq.user_name);
+            var newRegAdminEmailTask = emailService.SendNewRegistrationAdminEmail();
+
+            await Task.WhenAll(newUserTask, regEmailTask, newRegAdminEmailTask);
+            await newUserTask;
+            await regEmailTask;
+            await newRegAdminEmailTask;
 
             return NoContent();
         }

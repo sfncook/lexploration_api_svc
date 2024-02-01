@@ -175,32 +175,5 @@ namespace SalesBotApi.Controllers
 
             return new OkResult();
         }// cleanup
-
-
-
-        // Used for debugging and special maintenance
-        // DELETE: api/cleanup/special
-        [HttpDelete("special")]
-        [JwtAuthorize]
-        public async Task<IActionResult> SpecialTaskCleanup()
-        {
-            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
-            string role = userData.role;
-            if(role != "root") {
-                return Unauthorized();
-            }
-
-            // Delete all of BlackTie's old links, except one (so the admin page doesn't revert back to training mode)
-            // IEnumerable<Link> links = await queriesSvc.GetAllItems<Link>(linksContainer);
-            // foreach (var link in links)
-            // {
-            //     if(link.company_id == "blacktiecasinoevents" && link.id != "925c2b0a-d44b-48a6-9679-aa3177b74766") {
-            //         Console.WriteLine($"Deleting link with ID: {link.id}, Company ID: {link.company_id}");
-            //         await linksContainer.DeleteItemAsync<Link>(link.id, new PartitionKey(link.company_id));
-            //     }
-            // }
-
-            return Ok();
-        }
     }
 }
