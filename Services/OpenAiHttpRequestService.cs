@@ -10,9 +10,13 @@ public class OpenAiHttpRequestService
 {
 
     private readonly HttpClient _httpClient;
-    public OpenAiHttpRequestService()
+    private readonly LogBufferService logger;
+    public OpenAiHttpRequestService(
+        LogBufferService logger
+    )
     {
         _httpClient = new HttpClient();
+        this.logger = logger;
     }
 
     public async Task<AssistantResponse> SubmitUserQuestion(
@@ -34,8 +38,6 @@ public class OpenAiHttpRequestService
             .setConversation(convo)
             .setRefinements(refinements)
             .build();
-
-        Console.WriteLine(prompt);
 
         OpenAiRequestBuilder openAiRequestBuilder = new OpenAiRequestBuilder();
         string reqParams = openAiRequestBuilder
@@ -70,12 +72,12 @@ public class OpenAiHttpRequestService
                 // TODO add count metrics for how ofte this happens
                 string messageContent = chatCompletionResponse.choices[0].message.content;
                 if(messageContent!=null){
-                    Console.WriteLine($"JSON Exception trying to parse assistant response argumentsStr:{argumentsStr} but message.content was NON NULL:{messageContent}");
+                    logger.Error($"JSON Exception trying to parse assistant response argumentsStr:{argumentsStr} but message.content was NON NULL:{messageContent}");
                     assistantResponse = new AssistantResponse {
                         assistant_response = messageContent
                     };
                 } else {
-                    Console.WriteLine($"JSON Exception trying to parse assistant response argumentsStr:{argumentsStr} and message.content was NULL so throwing the exception :(");
+                    logger.Error($"JSON Exception trying to parse assistant response argumentsStr:{argumentsStr} and message.content was NULL so throwing the exception :(");
                     throw;
                 }
             }

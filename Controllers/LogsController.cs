@@ -43,7 +43,6 @@ namespace SalesBotApi.Controllers
             if(level != null) {
                 sqlQueryText = $"SELECT * FROM c WHERE c.levelStr = '{FirstCharToUpper(level)}' ORDER BY c.time DESC OFFSET {offset} LIMIT {limit}";
             }
-            Console.WriteLine(sqlQueryText);
             QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
             List<LogMsg> logMsgs = new List<LogMsg>();
             using (FeedIterator<LogMsg> feedIterator = logsContainer.GetItemQueryIterator<LogMsg>(queryDefinition))

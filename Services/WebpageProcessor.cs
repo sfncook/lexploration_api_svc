@@ -18,7 +18,6 @@ public class WebpageProcessor
     public async Task<string[]> GetTextChunksFromUrlAsync(string url, int chunkSize)
     {
         // Download webpage content
-        Console.WriteLine(url);
         string htmlContent = await _httpClient.GetStringAsync(url);
 
         // Extract text from HTML

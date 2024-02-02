@@ -16,12 +16,14 @@ public class CacheInitializationService : BackgroundService
     private readonly SharedQueriesService queriesSvc;
     private readonly InMemoryCacheService<Company> cacheCompany;
     private readonly InMemoryCacheService<Chatbot> cacheChatbot;
+    private readonly LogBufferService logger;
 
     public CacheInitializationService(
         CosmosDbService cosmosDbService,
         SharedQueriesService queriesSvc, 
         InMemoryCacheService<Company> cacheCompany,
-        InMemoryCacheService<Chatbot> cacheChatbot
+        InMemoryCacheService<Chatbot> cacheChatbot,
+        LogBufferService logger
     )
     {
         companiesContainer = cosmosDbService.CompaniesContainer;
@@ -29,6 +31,7 @@ public class CacheInitializationService : BackgroundService
         this.queriesSvc = queriesSvc;
         this.cacheCompany = cacheCompany;
         this.cacheChatbot = cacheChatbot;
+        this.logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -47,21 +50,18 @@ public class CacheInitializationService : BackgroundService
                 IEnumerable<Company> companies = await companiesTask;
                 foreach(Company c in companies) {
                     if(c.company_id!="XXX" && c.company_id!="all"){
-                        Console.WriteLine($"cache_debug Priming company:{c.company_id}");
                         cacheCompany.Set(c.company_id, c);
                     }
                 }
 
                 IEnumerable<Chatbot> chatbots = await chatbotsTask;
                 foreach(Chatbot c in chatbots) {
-                    Console.WriteLine($"cache_debug Priming chatbot:{c.company_id}");
                     cacheChatbot.Set(c.company_id, c);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Exception");
-                Console.WriteLine(ex.ToString());
+                logger.Error(ex.ToString());
             }
         }
     }

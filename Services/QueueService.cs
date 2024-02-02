@@ -11,14 +11,17 @@ public class QueueService
 {
     private readonly QueueClient scrapeLinksQueueClient;
     private readonly QueueClient sendEmailQueueClient;
+    private readonly LogBufferService logger;
 
     public QueueService(
         IOptions<MySettings> _mySettings,
-        IOptions<MyConnectionStrings> _myConnectionStrings
+        IOptions<MyConnectionStrings> _myConnectionStrings,
+        LogBufferService logger
     )
     {
         MySettings mySettings = _mySettings.Value;
         MyConnectionStrings myConnectionStrings = _myConnectionStrings.Value;
+        this.logger = logger;
 
         scrapeLinksQueueClient = new QueueClient(
             myConnectionStrings.QueueConnectionStr,
@@ -35,7 +38,7 @@ public class QueueService
 
     public async Task EnqueueScrapLinksMessageAsync(string message)
     {
-        Console.WriteLine(message);
+        logger.Info(message);
         if (string.IsNullOrEmpty(message))
             throw new ArgumentNullException(nameof(message));
 
@@ -63,7 +66,7 @@ public class QueueService
     public async Task EnqueueSendEmailMessageAsync(EmailRequest emailRequest)
     {
         string message = JsonConvert.SerializeObject(emailRequest);
-        Console.WriteLine(message);
+        logger.Info(message);
         if (string.IsNullOrEmpty(message))
             throw new ArgumentNullException(nameof(message));
 

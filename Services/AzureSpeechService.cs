@@ -72,7 +72,7 @@ public class AzureSpeechService
         string tempPath = Path.GetTempPath();
         string randomFileName = Path.ChangeExtension(Path.GetRandomFileName(), ".wav");
         string fullPath = Path.Combine(tempPath, randomFileName);
-        Console.WriteLine($"fullPath: {fullPath}");
+        // Console.WriteLine($"fullPath: {fullPath}");
         using var audioConfig = AudioConfig.FromWavFileOutput(fullPath);
 
 
@@ -84,10 +84,6 @@ public class AzureSpeechService
         {
             speechSynthesizer.VisemeReceived += (s, e) =>
             {
-                Console.WriteLine($"Viseme event received. Audio offset: " +
-                    $"{e.AudioOffset / 10000}ms, viseme id: {e.VisemeId}.");
-
-
                 visemeData.Add(new VisemeData{
                     offset = e.AudioOffset / 10000000.0,
                     visemeId = e.VisemeId,

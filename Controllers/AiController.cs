@@ -6,7 +6,6 @@ using Microsoft.Azure.Cosmos;
 using System.Collections.Generic;
 using static OpenAiHttpRequestService;
 using static AzureSpeechService;
-using Newtonsoft.Json;
 using System.Diagnostics;
 using Microsoft.Extensions.Options;
 

@@ -19,20 +19,20 @@ namespace SalesBotApi.Controllers
         private readonly Container companiesContainer;
         private readonly Container usersContainer;
         private readonly Container chatbotsContainer;
-        private readonly ILogger<CompaniesController> logger;
+        private readonly LogBufferService logger;
         private readonly InMemoryCacheService<Company> cacheCompany;
         private readonly InMemoryCacheService<Chatbot> cacheChatbot;
         private readonly SharedQueriesService sharedQueriesService;
 
         public CompaniesController(
             CosmosDbService cosmosDbService, 
-            ILogger<CompaniesController> _logger,
+            LogBufferService logger,
             InMemoryCacheService<Company> cacheCompany,
             SharedQueriesService sharedQueriesService,
             InMemoryCacheService<Chatbot> cacheChatbot
             )
         {
-            logger = _logger;
+            this.logger = logger;
             companiesContainer = cosmosDbService.CompaniesContainer;
             usersContainer = cosmosDbService.UsersContainer;
             chatbotsContainer = cosmosDbService.ChatbotsContainer;
@@ -57,7 +57,6 @@ namespace SalesBotApi.Controllers
         [HttpGet("client")]
         public async Task<ActionResult<Company>> GetCompaniesNoAuth([FromQuery] string company_id)
         {
-            logger.LogInformation($"GetCompaniesNoAuth {company_id}");
             if (company_id == null)
             {
                 return BadRequest("Missing company_id parameter");
@@ -84,14 +83,13 @@ namespace SalesBotApi.Controllers
             string user_id = userData.id;
 
             UserWithPassword user = await GetUserById(user_id);
-            Console.WriteLine(user.company_id);
             if(user.company_id != "XXX" && user.company_id != "all") {
                 // Right now we're only letting each user create one company
                 return BadRequest();
             }
             string oldPartitionKeyValue = user.company_id;
             if(oldPartitionKeyValue == null || oldPartitionKeyValue == "") {
-                Console.WriteLine($"oldPartitionKeyValue is empty or null:{oldPartitionKeyValue} - This means this request will probably fail.  You need to prime new accounts with 'company_id' == 'XXX'");
+                logger.Error($"oldPartitionKeyValue is empty or null:{oldPartitionKeyValue} - This means this request will probably fail.  You need to prime new accounts with 'company_id' == 'XXX'");
                 return BadRequest("Invalid request, check the logs");
             }
             if (user == null)
