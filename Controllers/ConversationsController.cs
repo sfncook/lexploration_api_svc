@@ -126,7 +126,15 @@ namespace SalesBotApi.Controllers
             if (convo_id == null) {
                 return BadRequest();
             }
-            Conversation conversation = await sharedQueriesService.GetConversationById(convo_id);
+            
+            Conversation conversation;
+            try{
+                conversation = await sharedQueriesService.GetConversationById(convo_id);
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return NotFound();
+            }
 
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
             if(conversation != null) return NoContent();
@@ -162,6 +170,38 @@ namespace SalesBotApi.Controllers
 
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
             return Ok(newConvo);
+        }
+
+
+
+        // This is a particular request from Black Tie Casino Events
+        // No-Auth for chat client
+        // GET: api/conversations/msg_count
+        [HttpGet("msg_count")]
+        public async Task<ActionResult<long>> GetMsgCountForConvoId(
+            [FromQuery] string convo_id
+        )
+        {
+            if (convo_id == null) {
+                return BadRequest();
+            }
+            
+            string sqlQueryText = $"SELECT count(m) as many_msgs FROM m WHERE m.conversation_id='{convo_id}'";
+
+            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+
+            Response.Headers.Add("Access-Control-Allow-Origin", "*");
+            using (FeedIterator<MessagesManyPerConvo> feedIterator = messagesContainer.GetItemQueryIterator<MessagesManyPerConvo>(queryDefinition))
+            {
+                if (feedIterator.HasMoreResults)
+                {
+                    FeedResponse<MessagesManyPerConvo> response = await feedIterator.ReadNextAsync();
+                    return response.First().many_msgs;
+                }
+            }
+
+            
+            return NotFound();
         }
     }
 }
