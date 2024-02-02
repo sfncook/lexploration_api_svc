@@ -5,6 +5,7 @@ using SalesBotApi.Models;
 using Microsoft.Azure.Cosmos;
 using static LogBufferService;
 using System.Collections.Generic;
+using System;
 
 namespace SalesBotApi.Controllers
 {
@@ -24,7 +25,7 @@ namespace SalesBotApi.Controllers
         [HttpGet]
         [JwtAuthorize]
         public async Task<ActionResult<List<LogMsg>>> GetLogs(
-            [FromQuery] string logLevelStr,
+            [FromQuery] string level,
             [FromQuery] int offset,
             [FromQuery] int limit
         ) {
@@ -38,10 +39,11 @@ namespace SalesBotApi.Controllers
                 return BadRequest();
             }
 
-            string sqlQueryText = $"SELECT * FROM c WHERE OFFSET {offset} LIMIT {limit}";
-            if(logLevelStr != null) {
-                sqlQueryText = $"SELECT * FROM c WHERE c.levelStr = '{logLevelStr}' OFFSET {offset} LIMIT {limit}";
+            string sqlQueryText = $"SELECT * FROM c ORDER BY c.time DESC OFFSET {offset} LIMIT {limit}";
+            if(level != null) {
+                sqlQueryText = $"SELECT * FROM c WHERE c.levelStr = '{FirstCharToUpper(level)}' ORDER BY c.time DESC OFFSET {offset} LIMIT {limit}";
             }
+            Console.WriteLine(sqlQueryText);
             QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
             List<LogMsg> logMsgs = new List<LogMsg>();
             using (FeedIterator<LogMsg> feedIterator = logsContainer.GetItemQueryIterator<LogMsg>(queryDefinition))
@@ -55,6 +57,40 @@ namespace SalesBotApi.Controllers
 
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
             return logMsgs;
+        }
+
+        // GET: api/logs/count
+        [HttpGet("count")]
+        [JwtAuthorize]
+        public async Task<ActionResult<long>> GetLogsManyTotal()
+        {
+            JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
+            string role = userData.role;
+            if(role != "root") {
+                return Unauthorized();
+            }
+            string sqlQueryText = $"SELECT count(m) as many_msgs FROM m";
+            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+            Response.Headers.Add("Access-Control-Allow-Origin", "*");
+            using (FeedIterator<MessagesManyPerConvo> feedIterator = logsContainer.GetItemQueryIterator<MessagesManyPerConvo>(queryDefinition))
+            {
+                if (feedIterator.HasMoreResults)
+                {
+                    FeedResponse<MessagesManyPerConvo> response = await feedIterator.ReadNextAsync();
+                    return response.First().many_msgs;
+                }
+            }
+            return 0;
+        }
+
+        private string FirstCharToUpper(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+            {
+                return string.Empty;
+            }
+            string _input = input.ToLower();
+            return $"{char.ToUpper(_input[0])}{input[1..]}";
         }
     }
 }

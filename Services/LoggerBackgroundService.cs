@@ -35,11 +35,13 @@ public class LoggerBackgroundService : BackgroundService
         {
             try{
                 if(!logBufferService.IsEmpty()){
-                    Dictionary<LogLevel, List<LogMsg>> logMsgsByLevel = new Dictionary<LogLevel, List<LogMsg>>();
-                    logMsgsByLevel.Add(LogLevel.Debug, new List<LogMsg>());
-                    logMsgsByLevel.Add(LogLevel.Info, new List<LogMsg>());
-                    logMsgsByLevel.Add(LogLevel.Warn, new List<LogMsg>());
-                    logMsgsByLevel.Add(LogLevel.Error, new List<LogMsg>());
+                    Dictionary<LogLevel, List<LogMsg>> logMsgsByLevel = new Dictionary<LogLevel, List<LogMsg>>
+                    {
+                        { LogLevel.Debug, new List<LogMsg>() },
+                        { LogLevel.Info, new List<LogMsg>() },
+                        { LogLevel.Warn, new List<LogMsg>() },
+                        { LogLevel.Error, new List<LogMsg>() }
+                    };
 
                     while(logBufferService.TryDequeue(out LogMsg logMsg)) {
                         if(logMsg.level >= level) {
@@ -49,7 +51,6 @@ public class LoggerBackgroundService : BackgroundService
 
                     foreach (KeyValuePair<LogLevel, List<LogMsg>> kvp in logMsgsByLevel)
                     {
-                        Console.WriteLine("Key = {0}, Value = {1}", kvp.Key, kvp.Value);
                         LogLevel logLevel = kvp.Key;
                         List<LogMsg> logMsgs = kvp.Value;
 

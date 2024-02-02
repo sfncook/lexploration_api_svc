@@ -24,6 +24,8 @@ public class LogBufferService
 
     public void Log(LogLevel level, string message) {
         var logMsg = new LogMsg {
+            id = Guid.NewGuid().ToString(),
+            time = DateTime.UtcNow.ToString("o"),
             level = level,
             msg = message
         };
@@ -86,8 +88,8 @@ public class LogBufferService
     }
 
     public class LogMsg {
-        public string id { get; } = Guid.NewGuid().ToString();
-        public string time { get; } = DateTime.UtcNow.ToString("o");
+        public string id { get; set; }
+        public string time { get; set; }
         public LogLevel level { get; set; }
         public string levelStr => level.ToString();
         public string msg { get; set; }
