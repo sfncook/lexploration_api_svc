@@ -10,6 +10,7 @@ public class CosmosDbService
     public Container UsersContainer { get; }
     public Container LinksContainer { get; }
     public Container RefinementsContainer { get; }
+    public Container LogsContainer { get; }
 
     public CosmosDbService(
         IOptions<MySettings> _mySettings,
@@ -34,5 +35,6 @@ public class CosmosDbService
         UsersContainer = database.GetContainer(mySettings.TableUsers);
         LinksContainer = database.GetContainer(mySettings.TableLinks);
         RefinementsContainer = database.GetContainer(mySettings.TableRefinements);
+        LogsContainer = database.GetContainer(mySettings.TableLogs);
     }
 }

@@ -20,12 +20,19 @@
     "TableLinks": "links_sales_dev",
     "TableMessages": "messages_sales_dev",
     "TableRefinements": "refinements_sales_dev",
+    "TableLogs": "logs_sales_dev",
     "TableUsers": "users_sales_dev",
 
     "QueueLinks": "scrape-links-dev",
     "QueueEmails": "send-email-dev",
+    "LinkScrapeQueuePollRateMs": 10000,
 
-    "PineConeHost": "https://companies-dev-s1ptuxy.svc.apw5-4e34-81fa.pinecone.io"
+    "PineConeHost": "https://companies-dev-s1ptuxy.svc.apw5-4e34-81fa.pinecone.io",
+
+    "PrintLogsStdOut": true,
+    "WriteLogsCosmos": false,
+    "LogBufferPollRateMs": 1000,
+    "LogLevel": "Debug"
   },
   "ConnectionStrings": {
     "CosmosPrimaryAuthKey": "r5...g==",

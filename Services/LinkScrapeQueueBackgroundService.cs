@@ -7,23 +7,28 @@ using System.Threading.Tasks;
 using Azure.Storage.Queues.Models;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using SalesBotApi.Models;
 
-public class QueueBackgroundService : BackgroundService
+public class LinkScrapeQueueBackgroundService : BackgroundService
 {
     private readonly QueueService queueService;
     private readonly WebpageProcessor webpageProcessor;
     private readonly MemoryStoreService memoryStoreService;
     // private readonly TelemetryClient telemetryClient;
     private readonly Container linksContainer;
+    private readonly LogBufferService logger;
+    private readonly MySettings mySettings;
 
 
-    public QueueBackgroundService(
+    public LinkScrapeQueueBackgroundService(
         QueueService _queueService, 
         WebpageProcessor _webpageProcessor,
         MemoryStoreService _memoryStoreService,
-        CosmosDbService cosmosDbService
+        CosmosDbService cosmosDbService,
+        LogBufferService logger,
+        IOptions<MySettings> mySettings
         // TelemetryClient _telemetryClient
     )
     {
@@ -32,13 +37,15 @@ public class QueueBackgroundService : BackgroundService
         memoryStoreService = _memoryStoreService;
         // telemetryClient = _telemetryClient;
         linksContainer = cosmosDbService.LinksContainer;
+        this.logger = logger;
+        this.mySettings = mySettings.Value;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            Console.WriteLine("Poll");
+            logger.Debug("Poll");
             QueueMessage message = await queueService.GetScrapLinksMessageAsync();
             if (message != null)
             {
@@ -49,12 +56,12 @@ public class QueueBackgroundService : BackgroundService
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Exception");
-                    Console.WriteLine(ex.ToString());
+                    logger.Error("Exception");
+                    logger.Error(ex.ToString());
                 }
             } else {
                 // When there is no message waiting then sleep between polls
-                await Task.Delay(10000);
+                await Task.Delay(mySettings.LinkScrapeQueuePollRateMs, stoppingToken);
             }
         }
     }
@@ -72,10 +79,9 @@ public class QueueBackgroundService : BackgroundService
     private async void ProcessMessage(QueueMessage message)
     {
         var stopwatch = Stopwatch.StartNew();
-        Console.WriteLine("ProcessMessage");
         var base64EncodedBytes = Convert.FromBase64String(message.MessageText);
         var decodedMessage = Encoding.UTF8.GetString(base64EncodedBytes);
-        Console.WriteLine(decodedMessage);
+        logger.Debug(decodedMessage);
         var link = JsonConvert.DeserializeObject<Link>(decodedMessage);
         try{
             string[] chunks = await webpageProcessor.GetTextChunksFromUrlAsync(link.link, 1000);
@@ -85,7 +91,7 @@ public class QueueBackgroundService : BackgroundService
             }
             UpdateLink(link, "complete", "success");
         } catch(Exception ex) {
-            Console.WriteLine(ex.Message);
+            logger.Error(ex.Message);
             UpdateLink(link, "error", ex.Message);
         }
         stopwatch.Stop();

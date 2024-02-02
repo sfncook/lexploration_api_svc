@@ -22,6 +22,7 @@ namespace SalesBotApi.Controllers
         private readonly Container messagesContainer;
         private readonly AzureSpeechService azureSpeechService;
         private readonly EmailService emailService;
+        private readonly LogBufferService logger;
 
         public AiController(
             OpenAiHttpRequestService _openAiHttpRequestService, 
@@ -30,7 +31,8 @@ namespace SalesBotApi.Controllers
             CosmosDbService cosmosDbService,
             AzureSpeechService azureSpeechService,
             EmailService emailService,
-            IOptions<MyConnectionStrings> myConnectionStrings
+            IOptions<MyConnectionStrings> myConnectionStrings,
+            LogBufferService logger
         )
         {
             openAiHttpRequestService = _openAiHttpRequestService;
@@ -39,6 +41,7 @@ namespace SalesBotApi.Controllers
             messagesContainer = cosmosDbService.MessagesContainer;
             this.azureSpeechService = azureSpeechService;
             this.emailService = emailService;
+            this.logger = logger;
         }
 
         // PUT: api/ai/submit_user_question
