@@ -27,9 +27,9 @@ namespace SalesBotApi.Controllers
         public CompaniesController(
             CosmosDbService cosmosDbService, 
             LogBufferService logger,
-            RedisCacheService<Company> cacheCompany,
+            InMemoryCacheService<Company> cacheCompany,
             SharedQueriesService sharedQueriesService,
-            RedisCacheService<Chatbot> cacheChatbot
+            InMemoryCacheService<Chatbot> cacheChatbot
             )
         {
             this.logger = logger;

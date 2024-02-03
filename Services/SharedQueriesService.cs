@@ -23,10 +23,10 @@ public class SharedQueriesService
 
     public SharedQueriesService(
         CosmosDbService cosmosDbService, 
-        RedisCacheService<Company> cacheCompany,
-        RedisCacheService<Conversation> cacheConvo,
-        RedisCacheService<IEnumerable<Refinement>> cacheRefinements,
-        RedisCacheService<Chatbot> cacheChatbot
+        InMemoryCacheService<Company> cacheCompany,
+        InMemoryCacheService<Conversation> cacheConvo,
+        InMemoryCacheService<IEnumerable<Refinement>> cacheRefinements,
+        InMemoryCacheService<Chatbot> cacheChatbot
     )
     {
         conversationsContainer = cosmosDbService.ConversationsContainer;

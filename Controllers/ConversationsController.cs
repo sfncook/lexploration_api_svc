@@ -19,7 +19,7 @@ namespace SalesBotApi.Controllers
 
         public ConversationsController(
             CosmosDbService cosmosDbService,
-            RedisCacheService<Conversation> cacheConvo,
+            InMemoryCacheService<Conversation> cacheConvo,
             SharedQueriesService sharedQueriesService
         )
         {

@@ -6,7 +6,7 @@ public class RedisCacheService<T> : ICacheProvider<T>
     private readonly ConnectionMultiplexer redis;
     
     public RedisCacheService() {
-        redis = ConnectionMultiplexer.Connect("salesbot.redis.cache.windows.net:6380,password=UCtTmFA48TeVGl3cOlJLBxd8EvEDYiCwZAzCaAc4pPE=,ssl=True,abortConnect=False");
+        redis = ConnectionMultiplexer.Connect("salesbot.redis.cache.windows.net:6380,password=...,ssl=True,abortConnect=False");
     }
 
     public T Get(string _id) {

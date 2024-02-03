@@ -27,10 +27,10 @@ namespace SalesBotApi.Controllers
         public CleanupController(
             CosmosDbService cosmosDbService, 
             SharedQueriesService _queriesSvc,
-            RedisCacheService<Company> cacheCompany,
-            RedisCacheService<Conversation> cacheConvo,
-            RedisCacheService<Chatbot> cacheChatbot,
-            RedisCacheService<IEnumerable<Refinement>> cacheRefinements
+            InMemoryCacheService<Company> cacheCompany,
+            InMemoryCacheService<Conversation> cacheConvo,
+            InMemoryCacheService<Chatbot> cacheChatbot,
+            InMemoryCacheService<IEnumerable<Refinement>> cacheRefinements
         )
         {
             conversationsContainer = cosmosDbService.ConversationsContainer;

@@ -21,8 +21,8 @@ public class CacheInitializationService : BackgroundService
     public CacheInitializationService(
         CosmosDbService cosmosDbService,
         SharedQueriesService queriesSvc, 
-        RedisCacheService<Company> cacheCompany,
-        RedisCacheService<Chatbot> cacheChatbot,
+        InMemoryCacheService<Company> cacheCompany,
+        InMemoryCacheService<Chatbot> cacheChatbot,
         LogBufferService logger
     )
     {

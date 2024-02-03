@@ -41,7 +41,7 @@ namespace SalesBotApi.Controllers
             IHttpClientFactory clientFactory,
             QueueService _queueService,
             SharedQueriesService sharedQueriesService,
-            RedisCacheService<Company> cacheCompany
+            InMemoryCacheService<Company> cacheCompany
         )
         {
             linksContainer = cosmosDbService.LinksContainer;

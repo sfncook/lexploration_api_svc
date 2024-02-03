@@ -18,7 +18,7 @@ namespace SalesBotApi.Controllers
         public ChatbotsController(
             CosmosDbService cosmosDbService, 
             SharedQueriesService _sharedQueriesService,
-            RedisCacheService<Chatbot> redisCacheChatbot
+            InMemoryCacheService<Chatbot> redisCacheChatbot
         )
         {
             chatbotsContainer = cosmosDbService.ChatbotsContainer;
