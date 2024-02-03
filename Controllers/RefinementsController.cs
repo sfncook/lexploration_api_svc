@@ -22,12 +22,12 @@ namespace SalesBotApi.Controllers
         
         private readonly Container refinementsContainer;
         private readonly SharedQueriesService sharedQueriesService;
-        private readonly InMemoryCacheService<IEnumerable<Refinement>> cacheRefinements;
+        private readonly ICacheProvider<IEnumerable<Refinement>> cacheRefinements;
 
         public RefinementsController(
             CosmosDbService cosmosDbService, 
             SharedQueriesService _sharedQueriesService,
-            InMemoryCacheService<IEnumerable<Refinement>> cacheRefinements
+            RedisCacheService<IEnumerable<Refinement>> cacheRefinements
         )
         {
             refinementsContainer = cosmosDbService.RefinementsContainer;

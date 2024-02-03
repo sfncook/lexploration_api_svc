@@ -14,15 +14,15 @@ public class CacheInitializationService : BackgroundService
     private readonly Container companiesContainer;
     private readonly Container chatbotsContainer;
     private readonly SharedQueriesService queriesSvc;
-    private readonly InMemoryCacheService<Company> cacheCompany;
-    private readonly InMemoryCacheService<Chatbot> cacheChatbot;
+    private readonly ICacheProvider<Company> cacheCompany;
+    private readonly ICacheProvider<Chatbot> cacheChatbot;
     private readonly LogBufferService logger;
 
     public CacheInitializationService(
         CosmosDbService cosmosDbService,
         SharedQueriesService queriesSvc, 
-        InMemoryCacheService<Company> cacheCompany,
-        InMemoryCacheService<Chatbot> cacheChatbot,
+        RedisCacheService<Company> cacheCompany,
+        RedisCacheService<Chatbot> cacheChatbot,
         LogBufferService logger
     )
     {

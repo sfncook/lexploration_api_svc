@@ -20,16 +20,16 @@ namespace SalesBotApi.Controllers
         private readonly Container usersContainer;
         private readonly Container chatbotsContainer;
         private readonly LogBufferService logger;
-        private readonly InMemoryCacheService<Company> cacheCompany;
-        private readonly InMemoryCacheService<Chatbot> cacheChatbot;
+        private readonly ICacheProvider<Company> cacheCompany;
+        private readonly ICacheProvider<Chatbot> cacheChatbot;
         private readonly SharedQueriesService sharedQueriesService;
 
         public CompaniesController(
             CosmosDbService cosmosDbService, 
             LogBufferService logger,
-            InMemoryCacheService<Company> cacheCompany,
+            RedisCacheService<Company> cacheCompany,
             SharedQueriesService sharedQueriesService,
-            InMemoryCacheService<Chatbot> cacheChatbot
+            RedisCacheService<Chatbot> cacheChatbot
             )
         {
             this.logger = logger;

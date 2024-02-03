@@ -16,17 +16,17 @@ public class SharedQueriesService
     private readonly Container messagesContainer;
     private readonly Container usersContainer;
     private readonly Container refinementsContainer;
-    private readonly InMemoryCacheService<Company> cacheCompany;
-    private readonly InMemoryCacheService<Conversation> cacheConvo;
-    private readonly InMemoryCacheService<IEnumerable<Refinement>> cacheRefinements;
-    private readonly InMemoryCacheService<Chatbot> cacheChatbot;
+    private readonly ICacheProvider<Company> cacheCompany;
+    private readonly ICacheProvider<Conversation> cacheConvo;
+    private readonly ICacheProvider<IEnumerable<Refinement>> cacheRefinements;
+    private readonly ICacheProvider<Chatbot> cacheChatbot;
 
     public SharedQueriesService(
         CosmosDbService cosmosDbService, 
-        InMemoryCacheService<Company> cacheCompany,
-        InMemoryCacheService<Conversation> cacheConvo,
-        InMemoryCacheService<IEnumerable<Refinement>> cacheRefinements,
-        InMemoryCacheService<Chatbot> cacheChatbot
+        RedisCacheService<Company> cacheCompany,
+        RedisCacheService<Conversation> cacheConvo,
+        RedisCacheService<IEnumerable<Refinement>> cacheRefinements,
+        RedisCacheService<Chatbot> cacheChatbot
     )
     {
         conversationsContainer = cosmosDbService.ConversationsContainer;

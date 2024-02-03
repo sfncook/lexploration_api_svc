@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-public class InMemoryCacheService<T>
+public class InMemoryCacheService<T> : ICacheProvider<T>
 {
 
     private readonly ConcurrentDictionary<string, T> objsById = new ConcurrentDictionary<string, T>();

@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using SalesBotApi.Models;
 using Microsoft.Azure.Cosmos;
+using System;
 
 namespace SalesBotApi.Controllers
 {
@@ -13,17 +13,17 @@ namespace SalesBotApi.Controllers
     {
         private readonly Container chatbotsContainer;
         private readonly SharedQueriesService sharedQueriesService;
-        private readonly InMemoryCacheService<Chatbot> cacheChatbot;
+        private readonly ICacheProvider<Chatbot> cacheChatbot;
 
         public ChatbotsController(
             CosmosDbService cosmosDbService, 
             SharedQueriesService _sharedQueriesService,
-            InMemoryCacheService<Chatbot> cacheChatbot
+            RedisCacheService<Chatbot> redisCacheChatbot
         )
         {
             chatbotsContainer = cosmosDbService.ChatbotsContainer;
             sharedQueriesService = _sharedQueriesService;
-            this.cacheChatbot = cacheChatbot;
+            cacheChatbot = redisCacheChatbot;
         }
 
         // GET: api/chatbots

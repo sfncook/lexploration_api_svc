@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using StackExchange.Redis;
 
-public class RedisCacheService<T>
+public class RedisCacheService<T> : ICacheProvider<T>
 {
     private readonly ConnectionMultiplexer redis;
     

@@ -34,14 +34,14 @@ namespace SalesBotApi.Controllers
         private readonly Container companiesContainer;
         private readonly QueueService queueService;
         private readonly SharedQueriesService sharedQueriesService;
-        private readonly InMemoryCacheService<Company> cacheCompany;
+        private readonly ICacheProvider<Company> cacheCompany;
 
         public LinksController(
             CosmosDbService cosmosDbService,
             IHttpClientFactory clientFactory,
             QueueService _queueService,
             SharedQueriesService sharedQueriesService,
-            InMemoryCacheService<Company> cacheCompany
+            RedisCacheService<Company> cacheCompany
         )
         {
             linksContainer = cosmosDbService.LinksContainer;

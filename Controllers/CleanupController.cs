@@ -19,18 +19,18 @@ namespace SalesBotApi.Controllers
         private readonly Container usersContainer;
         private readonly Container refinementsContainer;
         private readonly SharedQueriesService queriesSvc;
-        private readonly InMemoryCacheService<Company> cacheCompany;
-        private readonly InMemoryCacheService<Conversation> cacheConvo;
-        private readonly InMemoryCacheService<Chatbot> cacheChatbot;
-        private readonly InMemoryCacheService<IEnumerable<Refinement>> cacheRefinements;
+        private readonly ICacheProvider<Company> cacheCompany;
+        private readonly ICacheProvider<Conversation> cacheConvo;
+        private readonly ICacheProvider<Chatbot> cacheChatbot;
+        private readonly ICacheProvider<IEnumerable<Refinement>> cacheRefinements;
 
         public CleanupController(
             CosmosDbService cosmosDbService, 
             SharedQueriesService _queriesSvc,
-            InMemoryCacheService<Company> cacheCompany,
-            InMemoryCacheService<Conversation> cacheConvo,
-            InMemoryCacheService<Chatbot> cacheChatbot,
-            InMemoryCacheService<IEnumerable<Refinement>> cacheRefinements
+            RedisCacheService<Company> cacheCompany,
+            RedisCacheService<Conversation> cacheConvo,
+            RedisCacheService<Chatbot> cacheChatbot,
+            RedisCacheService<IEnumerable<Refinement>> cacheRefinements
         )
         {
             conversationsContainer = cosmosDbService.ConversationsContainer;

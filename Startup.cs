@@ -48,6 +48,11 @@ namespace SalesBotApi
             services.AddSingleton<InMemoryCacheService<Conversation>>();
             services.AddSingleton<InMemoryCacheService<Chatbot>>();
             services.AddSingleton<InMemoryCacheService<IEnumerable<Refinement>>>();
+            services.AddSingleton<RedisCacheService<Company>>();
+            services.AddSingleton<RedisCacheService<Conversation>>();
+            services.AddSingleton<RedisCacheService<Chatbot>>();
+            services.AddSingleton<RedisCacheService<IEnumerable<Refinement>>>();
+            
             services.AddSingleton<JwtService>();
             services.AddSingleton<SemanticKernelService>();
             services.AddSingleton<OpenAiHttpRequestService>();

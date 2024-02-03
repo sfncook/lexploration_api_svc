@@ -14,12 +14,12 @@ namespace SalesBotApi.Controllers
     {
         private readonly Container conversationsContainer;
         private readonly Container messagesContainer;
-        private readonly InMemoryCacheService<Conversation> cacheConvo;
+        private readonly ICacheProvider<Conversation> cacheConvo;
         private readonly SharedQueriesService sharedQueriesService;
 
         public ConversationsController(
             CosmosDbService cosmosDbService,
-            InMemoryCacheService<Conversation> cacheConvo,
+            RedisCacheService<Conversation> cacheConvo,
             SharedQueriesService sharedQueriesService
         )
         {
