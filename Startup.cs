@@ -62,11 +62,14 @@ namespace SalesBotApi
             services.AddSingleton<WebpageProcessor>();
             services.AddSingleton<AzureSpeechService>();
             services.AddSingleton<ConfigController>();
+            
             services.AddSingleton<LogBufferService>();
+            services.AddSingleton<MetricsBufferService>();
 
             services.AddHostedService<LinkScrapeQueueBackgroundService>();
             services.AddHostedService<CacheInitializationService>();
             services.AddHostedService<LoggerBackgroundService>();
+            services.AddHostedService<MetricsBackgroundService>();
             // services.AddApplicationInsightsTelemetry();
 
 

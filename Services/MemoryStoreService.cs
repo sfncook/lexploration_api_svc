@@ -89,7 +89,6 @@ public class MemoryStoreService
     }
     public async Task<float[]> GetVector(IEmbeddingsProvider embeddingsProvider, string question)
     {
-        // TODO: Add latency metric
         return await embeddingsProvider.GetEmbeddingsAsync(question);
     }
 
@@ -109,7 +108,6 @@ public class MemoryStoreService
         // Console.WriteLine(body);
         var content = new StringContent(body, Encoding.UTF8, "application/json");
 
-        // TODO: Add latency metric
         using (var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{pineconeHost}/query"))
         {
             requestMessage.Content = content;

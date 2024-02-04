@@ -11,6 +11,7 @@ public class CosmosDbService
     public Container LinksContainer { get; }
     public Container RefinementsContainer { get; }
     public Container LogsContainer { get; }
+    public Container MetricsContainer { get; }
 
     public CosmosDbService(
         IOptions<MySettings> _mySettings,
@@ -36,5 +37,6 @@ public class CosmosDbService
         LinksContainer = database.GetContainer(mySettings.TableLinks);
         RefinementsContainer = database.GetContainer(mySettings.TableRefinements);
         LogsContainer = database.GetContainer(mySettings.TableLogs);
+        MetricsContainer = database.GetContainer(mySettings.TableMetrics);
     }
 }

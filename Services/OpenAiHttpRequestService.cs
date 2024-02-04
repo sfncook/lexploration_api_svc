@@ -5,18 +5,25 @@ using System.Net.Http;
 using Newtonsoft.Json;
 using System.Text;
 using System;
+using Microsoft.Extensions.Options;
 
 public class OpenAiHttpRequestService
 {
 
     private readonly HttpClient _httpClient;
     private readonly LogBufferService logger;
+    private readonly MetricsBufferService metrics;
+    private readonly string openaiApikey;
     public OpenAiHttpRequestService(
-        LogBufferService logger
+        LogBufferService logger,
+        MetricsBufferService metrics,
+        IOptions<MyConnectionStrings> myConnectionStrings
     )
     {
         _httpClient = new HttpClient();
         this.logger = logger;
+        this.metrics = metrics;
+        openaiApikey = myConnectionStrings.Value.OpenAiApiKey;
     }
 
     public async Task<AssistantResponse> SubmitUserQuestion(
@@ -55,7 +62,7 @@ public class OpenAiHttpRequestService
         using (var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions"))
         {
             requestMessage.Content = content;
-            requestMessage.Headers.Add("Authorization", "Bearer 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");
+            requestMessage.Headers.Add("Authorization", $"Bearer {openaiApikey}");
 
             var response = await _httpClient.SendAsync(requestMessage);
             response.EnsureSuccessStatusCode();
@@ -63,20 +70,25 @@ public class OpenAiHttpRequestService
             string responseString = await response.Content.ReadAsStringAsync();
             ChatCompletionResponse chatCompletionResponse = JsonConvert.DeserializeObject<ChatCompletionResponse>(responseString);
             string argumentsStr = chatCompletionResponse.choices[0].message.tool_calls[0].function.arguments;
+            metrics.Count("openai.usage.prompt_tokens", chatCompletionResponse.usage.prompt_tokens, tag:company.company_id);
+            metrics.Count("openai.usage.completion_tokens", chatCompletionResponse.usage.completion_tokens, tag:company.company_id);
+            metrics.Count("openai.usage.total_tokens", chatCompletionResponse.usage.total_tokens, tag:company.company_id);
+
             AssistantResponse assistantResponse;
             // Sometime we're getting JSON failure parsion the function arguments, so I'm assuming the LLM doesn't always call the function and sometimes it
             //  screws up and just returns a string (message.content).  Hence this try-catch block.
             try {
                 assistantResponse = JsonConvert.DeserializeObject<AssistantResponse>(argumentsStr);
             } catch(JsonReaderException) {
-                // TODO add count metrics for how ofte this happens
                 string messageContent = chatCompletionResponse.choices[0].message.content;
                 if(messageContent!=null){
+                    metrics.Inc("opeanai.json_exception.message_content_not_null");
                     logger.Error($"JSON Exception trying to parse assistant response argumentsStr:{argumentsStr} but message.content was NON NULL:{messageContent}");
                     assistantResponse = new AssistantResponse {
                         assistant_response = messageContent
                     };
                 } else {
+                    metrics.Inc("opeanai.json_exception.message_content_is_null");
                     logger.Error($"JSON Exception trying to parse assistant response argumentsStr:{argumentsStr} and message.content was NULL so throwing the exception :(");
                     throw;
                 }

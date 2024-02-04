@@ -20,13 +20,15 @@ public class SharedQueriesService
     private readonly ICacheProvider<Conversation> cacheConvo;
     private readonly ICacheProvider<IEnumerable<Refinement>> cacheRefinements;
     private readonly ICacheProvider<Chatbot> cacheChatbot;
+    private readonly MetricsBufferService metrics;
 
     public SharedQueriesService(
         CosmosDbService cosmosDbService, 
         InMemoryCacheService<Company> cacheCompany,
         InMemoryCacheService<Conversation> cacheConvo,
         InMemoryCacheService<IEnumerable<Refinement>> cacheRefinements,
-        InMemoryCacheService<Chatbot> cacheChatbot
+        InMemoryCacheService<Chatbot> cacheChatbot,
+        MetricsBufferService metricsBufferService
     )
     {
         conversationsContainer = cosmosDbService.ConversationsContainer;
@@ -40,6 +42,7 @@ public class SharedQueriesService
         this.cacheConvo = cacheConvo;
         this.cacheRefinements = cacheRefinements;
         this.cacheChatbot = cacheChatbot;
+        this.metrics = metricsBufferService;
     }
 
     public async Task<IEnumerable<T>> GetAllItems<T>(Container container)
@@ -84,6 +87,7 @@ public class SharedQueriesService
         }
         stopwatch.Stop();
         Console.WriteLine($"--> METRICS (COSMOS) Load cosmos data GetRecentMsgsForConvo: {stopwatch.ElapsedMilliseconds} ms");
+        metrics.Duration("cosmos_query.GetRecentMsgsForConvo.ms", stopwatch.ElapsedMilliseconds);
         return messages;
     }
 
@@ -99,6 +103,7 @@ public class SharedQueriesService
         }
         stopwatch.Stop();
         Console.WriteLine($"--> METRICS (COSMOS) Load cosmos data GetConversationById: {stopwatch.ElapsedMilliseconds} ms");
+        metrics.Duration("cosmos_query.GetConversationById.ms", stopwatch.ElapsedMilliseconds);
         return convo;
     }
 
@@ -125,6 +130,7 @@ public class SharedQueriesService
         }
         stopwatch.Stop();
         Console.WriteLine($"--> METRICS (COSMOS) Load cosmos data GetCompanyById: {stopwatch.ElapsedMilliseconds} ms");
+        metrics.Duration("cosmos_query.GetCompanyById.ms", stopwatch.ElapsedMilliseconds);
         return company;
     }
 
@@ -174,6 +180,7 @@ public class SharedQueriesService
         }
         stopwatch.Stop();
         Console.WriteLine($"--> METRICS (COSMOS) Load cosmos data GetFirstChatbotByCompanyId: {stopwatch.ElapsedMilliseconds} ms");
+        metrics.Duration("cosmos_query.GetFirstChatbotByCompanyId.ms", stopwatch.ElapsedMilliseconds);
         return chatbot;
     }
 
@@ -211,6 +218,7 @@ public class SharedQueriesService
 
         stopwatch.Stop();
         Console.WriteLine($"--> METRICS (COSMOS) Load cosmos data GetRefinementsByCompanyId: {stopwatch.ElapsedMilliseconds} ms");
+        metrics.Duration("cosmos_query.GetRefinementsByCompanyId.ms", stopwatch.ElapsedMilliseconds);
 
         return refinements;
     }

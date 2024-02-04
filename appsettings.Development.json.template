@@ -20,8 +20,9 @@
     "TableLinks": "links_sales_dev",
     "TableMessages": "messages_sales_dev",
     "TableRefinements": "refinements_sales_dev",
-    "TableLogs": "logs_sales_dev",
     "TableUsers": "users_sales_dev",
+    "TableLogs": "logs_sales_dev",
+    "TableMetrics": "metrics_sales_dev",
 
     "QueueLinks": "scrape-links-dev",
     "QueueEmails": "send-email-dev",
@@ -32,7 +33,10 @@
     "PrintLogsStdOut": true,
     "WriteLogsCosmos": false,
     "LogBufferPollRateMs": 1000,
-    "LogLevel": "Debug"
+    "LogLevel": "Debug",
+
+    "WriteMetricsCosmos": false,
+    "MetricsBufferPollRateMs": 1000
   },
   "ConnectionStrings": {
     "CosmosPrimaryAuthKey": "r5...g==",

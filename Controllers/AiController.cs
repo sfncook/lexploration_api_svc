@@ -22,6 +22,7 @@ namespace SalesBotApi.Controllers
         private readonly AzureSpeechService azureSpeechService;
         private readonly EmailService emailService;
         private readonly LogBufferService logger;
+        private readonly MetricsBufferService metrics;
 
         public AiController(
             OpenAiHttpRequestService _openAiHttpRequestService, 
@@ -31,7 +32,8 @@ namespace SalesBotApi.Controllers
             AzureSpeechService azureSpeechService,
             EmailService emailService,
             IOptions<MyConnectionStrings> myConnectionStrings,
-            LogBufferService logger
+            LogBufferService logger,
+            MetricsBufferService metricsBufferService
         )
         {
             openAiHttpRequestService = _openAiHttpRequestService;
@@ -41,6 +43,7 @@ namespace SalesBotApi.Controllers
             this.azureSpeechService = azureSpeechService;
             this.emailService = emailService;
             this.logger = logger;
+            this.metrics = metricsBufferService;
         }
 
         // PUT: api/ai/submit_user_question
@@ -104,6 +107,7 @@ namespace SalesBotApi.Controllers
             }
             stopwatch.Stop();
             Console.WriteLine($"METRICS (COSMOS & OpenAI-Embeddings) Load cosmos data: {stopwatch.ElapsedMilliseconds} ms");
+            metrics.Duration("submit_user_question.load_cosmos_data.ms", stopwatch.ElapsedMilliseconds);
 
             // CompareFloatArrays(vectorFloatArrAzure, vectorFloatArrOpenai);
 
@@ -144,6 +148,7 @@ namespace SalesBotApi.Controllers
             await leadsEmailTask;
             stopwatch.Stop();
             Console.WriteLine($"METRICS (COSMOS & Azure-Speech) Speech & insert-msg: {stopwatch.ElapsedMilliseconds} ms");
+            metrics.Duration("submit_user_question.speech_and_insert_msg.ms", stopwatch.ElapsedMilliseconds);
 
             SubmitResponse submitResponse = new SubmitResponse() {
                 assistant_response = new SubmitResponseAssistantResponse(){role="assistant", content=assistantResponse.assistant_response},
@@ -155,6 +160,7 @@ namespace SalesBotApi.Controllers
             Console.WriteLine($"METRICS *** END ***\n");
             stopwatch1.Stop();
             Console.WriteLine($"METRICS (Full) SubmitUserMessage: {stopwatch1.ElapsedMilliseconds} ms");
+            metrics.Duration("submit_user_question.func_duration.ms", stopwatch1.ElapsedMilliseconds);
 
             return Ok(submitResponse);
         }
@@ -175,30 +181,32 @@ namespace SalesBotApi.Controllers
         }
 
         private async Task<SpeechResults> GetSpeech(string text, bool mute) {
-            Stopwatch stopwatch = Stopwatch.StartNew();
             SpeechResults speechResults;
             if(!mute) {
                 speechResults = await azureSpeechService.GetSpeech(text);
             } else {
+                Stopwatch stopwatch = Stopwatch.StartNew();
                 speechResults = new SpeechResults() {
                     lipsync = new LipSyncResults(),
                     audio = ""
                 };
+                stopwatch.Stop();
+                string mutedStr = mute ? "(muted)": "";
+                Console.WriteLine($"--> METRICS (Azure-Speech) Get speech response: {stopwatch.ElapsedMilliseconds} ms {mutedStr}");
+                metrics.Duration("azure_speech_response.ms", stopwatch.ElapsedMilliseconds);
             }
-            stopwatch.Stop();
-            string mutedStr = mute ? "(muted)": "";
-            Console.WriteLine($"--> METRICS (Azure-Speech) Get speech response: {stopwatch.ElapsedMilliseconds} ms {mutedStr}");
             return speechResults;
         }
 
         private async Task<string[]> GetRelevantContexts(float[] vectorFloatArr, string companyId) 
         {
-            // TODO: Add metric many contextDocs by company(?)
             Stopwatch stopwatch = Stopwatch.StartNew();
             string[] contextDocs = await memoryStoreService.GetRelevantContexts(vectorFloatArr, companyId);
             Console.WriteLine($"contextDocs:{contextDocs.Length}");
+            metrics.Count("pinecone_get_contexts", contextDocs.Length, tag:companyId);
             stopwatch.Stop();
             Console.WriteLine($"METRICS (PINECONE) Get vector contexts: {stopwatch.ElapsedMilliseconds} ms");
+            metrics.Duration("pinecone_get_contexts.ms", stopwatch.ElapsedMilliseconds);
             return contextDocs;
         }
 
@@ -212,7 +220,6 @@ namespace SalesBotApi.Controllers
             IEnumerable<Message> messages
         )
         {
-            // TODO: Add metric latency call
             Stopwatch stopwatch = Stopwatch.StartNew();
             AssistantResponse assistantResponse = await openAiHttpRequestService.SubmitUserQuestion(
                 user_msg, 
@@ -225,6 +232,7 @@ namespace SalesBotApi.Controllers
             );
             stopwatch.Stop();
             Console.WriteLine($"METRICS (OpenAI) Get chat assistant response: {stopwatch.ElapsedMilliseconds} ms");
+            metrics.Duration("openai_llm_request.ms", stopwatch.ElapsedMilliseconds);
             return assistantResponse;
         }
 
@@ -253,6 +261,7 @@ namespace SalesBotApi.Controllers
             await messagesContainer.CreateItemAsync(message, new PartitionKey(convoid));
             stopwatch.Stop();
             Console.WriteLine($"--> METRICS (Cosmos) Insert new message: {stopwatch.ElapsedMilliseconds} ms");
+            metrics.Duration("cosmos_insert_new_msg.ms", stopwatch.ElapsedMilliseconds);
         }
 
         // This is only for debugging, evaluation, and testing.  This function can be deleted at anytime
