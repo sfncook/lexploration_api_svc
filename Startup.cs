@@ -54,6 +54,7 @@ namespace SalesBotApi
             services.AddSingleton<RedisCacheService<IEnumerable<Refinement>>>();
             
             services.AddSingleton<JwtService>();
+            services.AddSingleton<PasswordHasherService>();
             services.AddSingleton<SemanticKernelService>();
             services.AddSingleton<OpenAiHttpRequestService>();
             services.AddSingleton<MemoryStoreService>();

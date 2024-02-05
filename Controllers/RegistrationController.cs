@@ -16,30 +16,19 @@ namespace SalesBotApi.Controllers
         private readonly Container usersContainer;
         private readonly SharedQueriesService queriesSvc;
         private readonly EmailService emailService;
+        private readonly PasswordHasherService passwordHasherService;
 
         public RegistrationController(
             CosmosDbService cosmosDbService,
             SharedQueriesService _queriesSvc,
-            EmailService _emailService
+            EmailService _emailService,
+            PasswordHasherService passwordHasherService
         )
         {
             usersContainer = cosmosDbService.UsersContainer;
             queriesSvc = _queriesSvc;
             emailService = _emailService;
-        }
-
-        // POST: api/register/test
-        [HttpPost("test")]
-        public async Task<IActionResult> Test([FromBody] LoginRequest loginReq)
-        {
-            await emailService.SendEmail(
-                "hello@saleschat.bot", 
-                "Sales Chatbot Registration", 
-                "sfncook@gmail.com", 
-                "Hello from C#", 
-                "Hello world!  This is from C# code."
-            );
-            return Ok();
+            this.passwordHasherService = passwordHasherService;
         }
 
         // POST: api/register
@@ -60,13 +49,15 @@ namespace SalesBotApi.Controllers
                 }
             }
 
+            var (hashedPassword, salt) = passwordHasherService.HashPassword(loginReq.password);
             string newUuid = Guid.NewGuid().ToString();
             string companyId = "XXX";
             UserWithPassword newUser = new UserWithPassword
             {
                 id = newUuid,
                 user_name = loginReq.user_name,
-                password = loginReq.password,
+                password = hashedPassword,
+                salt = salt,
                 company_id = companyId,
                 role = "company_owner",
                 approval_status = ""

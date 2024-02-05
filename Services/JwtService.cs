@@ -11,7 +11,7 @@ public class JwtService
 
     public static string CreateToken(UserWithPassword fullUser)
     {
-        UserWithJwt authorizedUser = new UserWithJwt
+        UserWithJwt authorizedUser = new UserWithJwt()
        {
            id = fullUser.id,
            user_name = fullUser.user_name,
