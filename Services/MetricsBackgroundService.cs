@@ -28,7 +28,7 @@ public class MetricsBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
+        while (mySettings.WriteMetricsCosmos && !stoppingToken.IsCancellationRequested)
         {
             Console.WriteLine("Poll metrics");
             try{

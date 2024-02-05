@@ -23,13 +23,15 @@ namespace SalesBotApi.Controllers
         private readonly ICacheProvider<Company> cacheCompany;
         private readonly ICacheProvider<Chatbot> cacheChatbot;
         private readonly SharedQueriesService sharedQueriesService;
+        private readonly HubspotService hubspotService;
 
         public CompaniesController(
             CosmosDbService cosmosDbService, 
             LogBufferService logger,
             InMemoryCacheService<Company> cacheCompany,
             SharedQueriesService sharedQueriesService,
-            InMemoryCacheService<Chatbot> cacheChatbot
+            InMemoryCacheService<Chatbot> cacheChatbot,
+            HubspotService hubspotService
             )
         {
             this.logger = logger;
@@ -39,6 +41,7 @@ namespace SalesBotApi.Controllers
             this.cacheCompany = cacheCompany;
             this.sharedQueriesService = sharedQueriesService;
             this.cacheChatbot = cacheChatbot;
+            this.hubspotService = hubspotService;
         }
 
         // GET: api/companies
@@ -159,22 +162,24 @@ namespace SalesBotApi.Controllers
 
             try
             {
-                List<PatchOperation> patchOperations = new List<PatchOperation>()
-                {
-                    PatchOperation.Replace("/name", company.name),
-                    PatchOperation.Replace("/description", company.description),
-                    PatchOperation.Replace("/email_for_leads", company.email_for_leads)
-                };
-                await companiesContainer.PatchItemAsync<dynamic>(company.id, new PartitionKey(company.company_id), patchOperations);
-                cacheCompany.Clear(company_id);
-
-                Response.Headers.Add("Access-Control-Allow-Origin", "*");
-                return NoContent();
+                await sharedQueriesService.PatchCompany(company);
             }
-            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
                 return NotFound();
             }
+
+            try
+            {
+                if(!company.hubspot_initialized) {
+                    await hubspotService.InitializeHubspotAccount(company);
+                }
+            } catch(Exception e) {
+                logger.Error($"Failed to initialize Hubspot for company: {company.company_id}: {e.Message}");
+            }
+
+            Response.Headers.Add("Access-Control-Allow-Origin", "*");
+            return NoContent();
         }
 
         private async Task<UserWithPassword> GetUserById(string user_id) {

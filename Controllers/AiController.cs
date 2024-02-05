@@ -21,6 +21,7 @@ namespace SalesBotApi.Controllers
         private readonly Container messagesContainer;
         private readonly AzureSpeechService azureSpeechService;
         private readonly EmailService emailService;
+        private readonly HubspotService hubspotService;
         private readonly LogBufferService logger;
         private readonly MetricsBufferService metrics;
 
@@ -31,6 +32,7 @@ namespace SalesBotApi.Controllers
             CosmosDbService cosmosDbService,
             AzureSpeechService azureSpeechService,
             EmailService emailService,
+            HubspotService hubspotService,
             IOptions<MyConnectionStrings> myConnectionStrings,
             LogBufferService logger,
             MetricsBufferService metricsBufferService
@@ -42,6 +44,7 @@ namespace SalesBotApi.Controllers
             messagesContainer = cosmosDbService.MessagesContainer;
             this.azureSpeechService = azureSpeechService;
             this.emailService = emailService;
+            this.hubspotService = hubspotService;
             this.logger = logger;
             this.metrics = metricsBufferService;
         }
@@ -140,12 +143,18 @@ namespace SalesBotApi.Controllers
                 assistantResponse,
                 convoid
             );
+            var hubspotTask = UpdateHubspotIfNeeded(
+                company, 
+                assistantResponse,
+                convo
+            );
             
-            await Task.WhenAll(speechTask, insertMsgTask, leadsEmailTask);
+            await Task.WhenAll(speechTask, insertMsgTask, leadsEmailTask, hubspotTask);
             
             SpeechResults speechResults = await speechTask;
             await insertMsgTask;
             await leadsEmailTask;
+            await hubspotTask;
             stopwatch.Stop();
             Console.WriteLine($"METRICS (COSMOS & Azure-Speech) Speech & insert-msg: {stopwatch.ElapsedMilliseconds} ms");
             metrics.Duration("submit_user_question.speech_and_insert_msg.ms", stopwatch.ElapsedMilliseconds);
@@ -177,6 +186,23 @@ namespace SalesBotApi.Controllers
                 assistantResponse.user_wants_to_be_contacted
             ) {
                 await emailService.SendLeadGeneratedEmail(recipient_email, assistantResponse, convo_id);
+            }
+        }
+
+        private async Task UpdateHubspotIfNeeded(
+            Company company, 
+            AssistantResponse assistantResponse,
+            Conversation convo
+        ) {
+            if (
+                assistantResponse.user_first_name != null ||
+                assistantResponse.user_last_name != null ||
+                assistantResponse.user_email != null ||
+                assistantResponse.user_phone_number != null ||
+                assistantResponse.user_wants_to_schedule_call_with_sales_rep ||
+                assistantResponse.user_wants_to_be_contacted
+            ) {
+                await hubspotService.UpdateContactObj(company, assistantResponse, convo);
             }
         }
 

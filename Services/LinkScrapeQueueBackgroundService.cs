@@ -45,7 +45,6 @@ public class LinkScrapeQueueBackgroundService : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            logger.Debug("Poll");
             QueueMessage message = await queueService.GetScrapLinksMessageAsync();
             if (message != null)
             {

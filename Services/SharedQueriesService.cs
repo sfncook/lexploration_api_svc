@@ -223,6 +223,34 @@ public class SharedQueriesService
         return refinements;
     }
 
+    public async Task PatchCompany(Company company) {
+        List<PatchOperation> patchOperations = new List<PatchOperation>();
+        if(company.name != null) {
+            patchOperations.Add(PatchOperation.Replace("/name", company.name));
+        }
+        if(company.description != null) {
+            patchOperations.Add(PatchOperation.Replace("/description", company.description));
+        }
+        if(company.email_for_leads != null) {
+            patchOperations.Add(PatchOperation.Replace("/email_for_leads", company.email_for_leads));
+        }
+        if(company.hubspot_access_token != null) {
+            patchOperations.Add(PatchOperation.Set("/hubspot_access_token", company.hubspot_access_token));
+        }
+        patchOperations.Add(PatchOperation.Set("/hubspot_initialized", company.hubspot_initialized));
+        await companiesContainer.PatchItemAsync<dynamic>(company.id, new PartitionKey(company.company_id), patchOperations);
+        cacheCompany.Clear(company.company_id);
+    }
+
+    public async Task PatchConversation(Conversation convo) {
+        List<PatchOperation> patchOperations = new List<PatchOperation>();
+        if(convo.hubspot_id > 0) {
+            patchOperations.Add(PatchOperation.Set("/hubspot_id", convo.hubspot_id));
+        }
+        await conversationsContainer.PatchItemAsync<dynamic>(convo.id, new PartitionKey(convo.id), patchOperations);
+        cacheConvo.Clear(convo.id);
+    }
+
 
 }
 

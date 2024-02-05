@@ -42,6 +42,7 @@ namespace SalesBotApi
             });
             services.AddSingleton<CosmosDbService>();
             services.AddSingleton<EmailService>();
+            services.AddSingleton<HubspotService>();
             services.AddSingleton<QueueService>();
             services.AddSingleton<SharedQueriesService>();
             services.AddSingleton<InMemoryCacheService<Company>>();

@@ -10,5 +10,7 @@ namespace SalesBotApi.Models
         public string description { get; set; }
         public bool training { get; set; }
         public string email_for_leads { get; set; }
+        public string hubspot_access_token { get; set; }
+        public bool hubspot_initialized { get; set; }
     }
 }

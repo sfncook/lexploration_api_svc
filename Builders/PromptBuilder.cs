@@ -54,7 +54,6 @@ If you add any hyperlinks to your response they should always be in markdown for
 {role_sales}
 {show_call_to_action}
 {calendar_link}
-{collect_user_info}
 {redirect_prompts}
 {answered_questions}
 {user_first_name}
@@ -103,6 +102,19 @@ If the user is a new customer then you should behave as a sales represenative wo
 Try to be engaging and friendly.
 Try to understand what their needs are as they relate to this company's products or services.
 Sell the company.
+You should try to get them to tell you their name.  If they tell you their first and/or last name then you 
+should provide that in your response in the JSON fields named 'user_first_name' or 'user_last_name', 
+respectively.
+If the user gives you both their first and their last name then set both of those fields, 
+respectively ('user_first_name' and 'user_last_name').  It is okay to set both of those fields at the same time.
+For example if they say their name is 'John Smith' then you should set 
+user_first_name='John' and user_last_name='Smith'.
+You should try to get them to tell you their email address so a company representative can contact them.  If 
+they tell you their email address then you should provide that in your response in the JSON field 
+named 'user_email'.
+You should try to get them to tell you their phone number so a company representative can contact them.  If 
+they tell you their phone number then you should provide that in your response in the JSON field 
+named 'user_phone_number'.
 \n");
         } else {
             prompt = replaceInPrompt(prompt, "role_sales", @"
@@ -121,22 +133,6 @@ If they need help that is support related then tell them to contact the company.
             prompt = replaceInPrompt(prompt, "calendar_link", $"Try to get the user to schedule a call with a sales rep.  If the user says they wish to schedule a call with the sales rep then you can ask them to click on this link which you should include in markdown format in your response: {chatbot.calendar_link}\n");
         } else {
             prompt = replaceInPrompt(prompt, "calendar_link", "");
-        }
-
-        if(chatbot.role_sales && chatbot.collect_user_info){
-            prompt = replaceInPrompt(prompt, "collect_user_info", @"
-You should try to get them to tell you their name.  If they tell you their first and/or last name then you 
-should provide that in your response in the JSON fields named 'user_first_name' or 'user_last_name', 
-respectively.
-You should try to get them to tell you their email address so a company representative can contact them.  If 
-they tell you their email address then you should provide that in your response in the JSON field 
-named 'user_email'.
-You should try to get them to tell you their phone number so a company representative can contact them.  If 
-they tell you their phone number then you should provide that in your response in the JSON field 
-named 'user_phone_number'. \n
-            ");
-        } else {
-            prompt = replaceInPrompt(prompt, "collect_user_info", "");
         }
 
         if(chatbot.redirect_prompts!=null && chatbot.redirect_prompts.Length>0){

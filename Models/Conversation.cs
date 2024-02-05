@@ -13,5 +13,6 @@ namespace SalesBotApi.Models
         public string user_email { get; set; }
         public string user_phone_number { get; set; }
         public long _ts { get; set; }
+        public int hubspot_id { get; set; }
     }
 }
