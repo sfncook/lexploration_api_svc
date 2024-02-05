@@ -33,7 +33,7 @@ namespace SalesBotApi.Controllers
         [HttpGet]
         [JwtAuthorize]
         public async Task<ActionResult<IEnumerable<Conversation>>> GetConversations(
-            [FromQuery] int? since_timestamp
+            [FromQuery] long? since_timestamp
         )
         {
             JwtPayload userData = HttpContext.Items["UserData"] as JwtPayload;
