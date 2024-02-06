@@ -85,7 +85,7 @@ namespace SalesBotApi
                 var myConnectionStrings = serviceProvider.GetRequiredService<IOptions<MyConnectionStrings>>();
                 var logger = serviceProvider.GetRequiredService<LogBufferService>();
                 var mySettings = serviceProvider.GetRequiredService<IOptions<MySettings>>().Value;
-                string queueName = mySettings.QueueHubspotUpdate;
+                string queueName = mySettings.QueueEmails;
                 return new QueueService<EmailRequest>(queueName, myConnectionStrings, logger);
             });
 
@@ -95,11 +95,12 @@ namespace SalesBotApi
                 var myConnectionStrings = serviceProvider.GetRequiredService<IOptions<MyConnectionStrings>>();
                 var logger = serviceProvider.GetRequiredService<LogBufferService>();
                 var mySettings = serviceProvider.GetRequiredService<IOptions<MySettings>>().Value;
-                string queueName = mySettings.QueueEmails;
+                string queueName = mySettings.QueueHubspotUpdate;
                 return new QueueService<HubspotUpdateQueueMessage>(queueName, myConnectionStrings, logger);
             });
 
             services.AddHostedService<BackgroundService_Queue_LinkScrape>();
+            services.AddHostedService<BackgroundService_Queue_HubspotUpdater>();
             services.AddHostedService<CacheInitializationService>();
             services.AddHostedService<LoggerBackgroundService>();
             services.AddHostedService<MetricsBackgroundService>();

@@ -133,7 +133,9 @@ namespace SalesBotApi.Controllers
 
             stopwatch = Stopwatch.StartNew();
             var speechTask = GetSpeech(assistantResponse.assistant_response, req.mute);
+            string newMsgId = Guid.NewGuid().ToString();
             var insertMsgTask = InsertNewMessage(
+                newMsgId,
                 convoid,
                 companyid,
                 req.user_msg,
@@ -145,6 +147,7 @@ namespace SalesBotApi.Controllers
                 convoid
             );
             var hubspotTask = UpdateHubspotIfNeeded(
+                newMsgId,
                 company, 
                 assistantResponse,
                 convo
@@ -191,6 +194,7 @@ namespace SalesBotApi.Controllers
         }
 
         private async Task UpdateHubspotIfNeeded(
+            string newMsgId,
             Company company, 
             AssistantResponse assistantResponse,
             Conversation convo
@@ -206,11 +210,7 @@ namespace SalesBotApi.Controllers
                 HubspotUpdateQueueMessage msg = new HubspotUpdateQueueMessage{
                     company_id = company.company_id,
                     convo_id = convo.id,
-                    user_first_name = assistantResponse.user_first_name,
-                    user_last_name = assistantResponse.user_last_name,
-                    user_email = assistantResponse.user_email,
-                    user_phone_number = assistantResponse.user_phone_number,
-                    user_company_name = assistantResponse.user_company_name
+                    msg_id = newMsgId
                 };
                 await queueService.EnqueueMessageAsync(msg);
             }
@@ -273,6 +273,7 @@ namespace SalesBotApi.Controllers
         }
 
         private async Task InsertNewMessage(
+            string newMsgId,
             string convoid,
             string company_id,
             string user_msg,
@@ -280,7 +281,7 @@ namespace SalesBotApi.Controllers
         ) {
             Stopwatch stopwatch = Stopwatch.StartNew();
             Message message = new Message {
-                id = Guid.NewGuid().ToString(),
+                id = newMsgId,
                 conversation_id = convoid,
                 user_msg = user_msg,
                 assistant_response = assistantResponse.assistant_response,

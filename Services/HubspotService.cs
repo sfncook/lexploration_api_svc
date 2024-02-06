@@ -54,25 +54,27 @@ public class HubspotService
 
         var companyTask = sharedQueriesService.GetCompanyById(msg.company_id);
         var convoTask1 = sharedQueriesService.GetConversationById(msg.convo_id);
+        var msgTask1 = sharedQueriesService.GetMessageById(msg.msg_id, msg.convo_id);
         await Task.WhenAll(companyTask, convoTask1);
         Company company = await companyTask;
         Conversation convo = await convoTask1;
+        Message message = await msgTask1;
 
         int hubspot_id = convo.hubspot_id;
         HubspotContact hubspotContact =  null;
 
         // First check if we need to get the hubspot contact and update our db with the hubspot contact ID as needed
         if(hubspot_id==0) {
-            var emailTask = GetHubspotContact_By_Email(company, msg.user_email);
+            var emailTask = GetHubspotContact_By_Email(company, message.user_email);
             var convoTask = GetHubspotContact_By_ConvoId(company, convo);
             Task.WaitAll(emailTask, convoTask);
             HubspotContact contactEmail = await emailTask;
             HubspotContact contactConvo = await convoTask;
 
-            if(contactEmail != null) {
+            if(contactEmail != null && contactEmail.id > 0) {
                 hubspotContact = contactEmail;
                 hubspot_id = hubspotContact.id;
-            } else if(contactConvo != null) {
+            } else if(contactConvo != null && contactConvo.id > 0) {
                 hubspotContact = contactConvo;
                 hubspot_id = hubspotContact.id;
             }
@@ -88,9 +90,9 @@ public class HubspotService
 
         // If we don't have a valid hubspotContact then create a new contact else update the preexisting contact in hubspot
         if(hubspotContact==null) {
-            hubspotContact = await CreateNewHubspotContact(company, convo, msg.user_email, msg.user_phone_number, msg.user_last_name, msg.user_first_name);
+            hubspotContact = await CreateNewHubspotContact(company, convo, message.user_email, message.user_phone_number, message.user_last_name, message.user_first_name);
         } else {
-            hubspotContact = await UpdateHubspotContact(company, convo, hubspotContact, msg.user_email, msg.user_phone_number, msg.user_last_name, msg.user_first_name);
+            hubspotContact = await UpdateHubspotContact(company, convo, hubspotContact, message.user_email, message.user_phone_number, message.user_last_name, message.user_first_name);
         }
 
         // This is necessary if we created a new contact and it's just redundant double-checking otherwise.
@@ -117,7 +119,8 @@ public class HubspotService
                 lastname = user_last_name,
                 firstname = user_first_name,
                 kelicompanyid = company.company_id,
-                keliconvoid = convo.id
+                keliconvoid = convo.id,
+                keliconvolink = $"https://admin.keli.ai/messages?convo_id={convo.id}"
             }
         };
         string requestBodyStr = JsonConvert.SerializeObject(requestBody);
@@ -140,7 +143,8 @@ public class HubspotService
             properties = new HubspotUpdateRequestBodyProperties {
                 company = company.name,
                 kelicompanyid = company.company_id,
-                keliconvoid = convo.id
+                keliconvoid = convo.id,
+                keliconvolink = $"https://admin.keli.ai/messages?convo_id={convo.id}"
             }
         };
         if(!string.IsNullOrWhiteSpace(user_email)) {
@@ -256,11 +260,29 @@ public class HubspotService
         string requestBodyStr2 = JsonConvert.SerializeObject(requestBody2);
         var companyTask = SendHubspotRequest(company, HttpMethod.Post, "https://api.hubapi.com/crm/v3/properties/contact", requestBodyStr2);
 
-        await Task.WhenAll(convoTask, companyTask);
+        var requestBody3 = new
+        {
+            hidden =  false,
+            displayOrder =  2,
+            description =  "Link to the conversation in the Keli.AI Admin Portal",
+            label =  "Keli.AI Conversation Link",
+            type =  "string",
+            groupName =  "keliai",
+            name =  "keliconvolink",
+            fieldType =  "text",
+            formField =  false,
+            hasUniqueValue =  false
+        };
+        string requestBodyStr3 = JsonConvert.SerializeObject(requestBody3);
+        var convoLinkTask = SendHubspotRequest(company, HttpMethod.Post, "https://api.hubapi.com/crm/v3/properties/contact", requestBodyStr3);
+
+        await Task.WhenAll(convoTask, companyTask, convoLinkTask);
         var responseConvo = await convoTask;
         var responseCompany = await companyTask;
+        var responseConvoLink = await convoLinkTask;
         responseConvo.EnsureSuccessStatusCode();
         responseCompany.EnsureSuccessStatusCode();
+        responseConvoLink.EnsureSuccessStatusCode();
     } 
 
     private async Task SetCompanyHubspotInitialized(Company company) 
@@ -293,6 +315,7 @@ public class HubspotService
         public string firstname { get; set; }
         public string kelicompanyid { get; set; }
         public string keliconvoid { get; set; }
+        public string keliconvolink { get; set; }
     }
     public class HubspotContactProperties {
         public string company { get; set; }
@@ -307,14 +330,14 @@ public class HubspotService
         public HubspotContactProperties properties { get; set; }
     }
 
+    public class HubspotNotes {
+        public int id { get; set; }
+    }
+
     public class HubspotUpdateQueueMessage {
         public string company_id { get; set; }
         public string convo_id { get; set; }
-        public string user_first_name { get; set;}
-        public string user_last_name { get; set;}
-        public string user_email { get; set;}
-        public string user_phone_number { get; set;}
-        public string user_company_name { get; set;}
+        public string msg_id { get; set; }
     }
 
 }

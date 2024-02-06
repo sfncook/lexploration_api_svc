@@ -169,13 +169,16 @@ namespace SalesBotApi.Controllers
                 return NotFound();
             }
 
-            try
+            if(!string.IsNullOrEmpty(company.hubspot_access_token)) {
+                try
             {
                 if(!company.hubspot_initialized) {
                     await hubspotService.InitializeHubspotAccount(company);
                 }
             } catch(Exception e) {
                 logger.Error($"Failed to initialize Hubspot for company: {company.company_id}: {e.Message}");
+                throw;
+            }
             }
 
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
