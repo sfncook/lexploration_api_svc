@@ -32,14 +32,14 @@ namespace SalesBotApi.Controllers
         private readonly Container linksContainer;
         private readonly IHttpClientFactory _clientFactory;
         private readonly Container companiesContainer;
-        private readonly QueueService queueService;
+        private readonly QueueService<Link> queueService;
         private readonly SharedQueriesService sharedQueriesService;
         private readonly ICacheProvider<Company> cacheCompany;
 
         public LinksController(
             CosmosDbService cosmosDbService,
             IHttpClientFactory clientFactory,
-            QueueService _queueService,
+            QueueService<Link> _queueService,
             SharedQueriesService sharedQueriesService,
             InMemoryCacheService<Company> cacheCompany
         )
@@ -144,7 +144,7 @@ namespace SalesBotApi.Controllers
                 PatchOperation.Replace("/result", "")
             };
             await linksContainer.PatchItemAsync<dynamic>(link.id, new PartitionKey(link.company_id), patchOperations);
-            await queueService.EnqueueScrapLinksMessageAsync(JsonConvert.SerializeObject(link));
+            await queueService.EnqueueMessageAsync(link);
 
             Response.Headers.Add("Access-Control-Allow-Origin", "*");
             return NoContent();
@@ -253,7 +253,7 @@ namespace SalesBotApi.Controllers
             foreach (var batch in linkBatches)
             {
                 var tasks = batch.Select(link =>
-                    queueService.EnqueueScrapLinksMessageAsync(JsonConvert.SerializeObject(link)))
+                    queueService.EnqueueMessageAsync(link))
                     .ToList();
                 await Task.WhenAll(tasks);
             }
@@ -297,7 +297,7 @@ namespace SalesBotApi.Controllers
             foreach (var batch in linkBatches)
             {
                 var tasks2 = batch.Select(link =>
-                    queueService.EnqueueScrapLinksMessageAsync(JsonConvert.SerializeObject(link)))
+                    queueService.EnqueueMessageAsync(link))
                     .ToList();
                 await Task.WhenAll(tasks2);
             }

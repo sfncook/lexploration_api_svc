@@ -6,11 +6,11 @@ using static OpenAiHttpRequestService;
 public class EmailService
 {
     private readonly IHttpClientFactory clientFactory;
-    private readonly QueueService queueService;
+    private readonly QueueService<EmailRequest> queueService;
 
     public EmailService(
         IHttpClientFactory _clientFactory,
-        QueueService _queueService
+        QueueService<EmailRequest> _queueService
     )
     {
         clientFactory = _clientFactory;
@@ -28,7 +28,7 @@ public class EmailService
             body = _body
         };
 
-        await queueService.EnqueueSendEmailMessageAsync(emailReq);
+        await queueService.EnqueueMessageAsync(emailReq);
     }
 
     public async Task SendLeadGeneratedEmail(

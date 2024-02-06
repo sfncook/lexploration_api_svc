@@ -1,19 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Storage.Queues.Models;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using SalesBotApi.Models;
 
-public class LinkScrapeQueueBackgroundService : BackgroundService
+public class BackgroundService_Queue_LinkScrape : BackgroundService
 {
-    private readonly QueueService queueService;
+    private readonly QueueService<Link> queueService;
     private readonly WebpageProcessor webpageProcessor;
     private readonly MemoryStoreService memoryStoreService;
     // private readonly TelemetryClient telemetryClient;
@@ -22,8 +20,8 @@ public class LinkScrapeQueueBackgroundService : BackgroundService
     private readonly MySettings mySettings;
 
 
-    public LinkScrapeQueueBackgroundService(
-        QueueService _queueService, 
+    public BackgroundService_Queue_LinkScrape(
+        QueueService<Link> _queueService, 
         WebpageProcessor _webpageProcessor,
         MemoryStoreService _memoryStoreService,
         CosmosDbService cosmosDbService,
@@ -45,13 +43,15 @@ public class LinkScrapeQueueBackgroundService : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            QueueMessage message = await queueService.GetScrapLinksMessageAsync();
-            if (message != null)
+            var result = await queueService.GetMessageAsync();
+            if (result != null)
             {
+                QueueMessage queueMessage = result.Value.Item1;
+                Link link = result.Value.Item2;
                 try
                 {
-                    ProcessMessage(message);
-                    await queueService.DeleteScrapLinksMessageAsync(message);
+                    ProcessMessage(link);
+                    await queueService.DeleteMessageAsync(queueMessage);
                 }
                 catch (Exception ex)
                 {
@@ -75,13 +75,9 @@ public class LinkScrapeQueueBackgroundService : BackgroundService
         await linksContainer.PatchItemAsync<dynamic>(link.id, new PartitionKey(link.company_id), patchOperations);
     }
 
-    private async void ProcessMessage(QueueMessage message)
+    private async void ProcessMessage(Link link)
     {
         var stopwatch = Stopwatch.StartNew();
-        var base64EncodedBytes = Convert.FromBase64String(message.MessageText);
-        var decodedMessage = Encoding.UTF8.GetString(base64EncodedBytes);
-        logger.Debug(decodedMessage);
-        var link = JsonConvert.DeserializeObject<Link>(decodedMessage);
         try{
             string[] chunks = await webpageProcessor.GetTextChunksFromUrlAsync(link.link, 1000);
             foreach (string chunk in chunks)

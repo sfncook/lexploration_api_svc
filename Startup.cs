@@ -12,6 +12,8 @@ using Microsoft.Extensions.Logging;
 using System.IO;
 using System.Collections.Generic;
 using SalesBotApi.Controllers;
+using Microsoft.Extensions.Options;
+using static HubspotService;
 
 namespace SalesBotApi
 {
@@ -43,7 +45,6 @@ namespace SalesBotApi
             services.AddSingleton<CosmosDbService>();
             services.AddSingleton<EmailService>();
             services.AddSingleton<HubspotService>();
-            services.AddSingleton<QueueService>();
             services.AddSingleton<SharedQueriesService>();
             services.AddSingleton<InMemoryCacheService<Company>>();
             services.AddSingleton<InMemoryCacheService<Conversation>>();
@@ -68,7 +69,37 @@ namespace SalesBotApi
             services.AddSingleton<LogBufferService>();
             services.AddSingleton<MetricsBufferService>();
 
-            services.AddHostedService<LinkScrapeQueueBackgroundService>();
+            // Link Queue Service
+            services.AddSingleton(serviceProvider =>
+            {
+                var myConnectionStrings = serviceProvider.GetRequiredService<IOptions<MyConnectionStrings>>();
+                var logger = serviceProvider.GetRequiredService<LogBufferService>();
+                var mySettings = serviceProvider.GetRequiredService<IOptions<MySettings>>().Value;
+                string queueName = mySettings.QueueLinks;
+                return new QueueService<Link>(queueName, myConnectionStrings, logger);
+            });
+
+            // Email Queue Service
+            services.AddSingleton(serviceProvider =>
+            {
+                var myConnectionStrings = serviceProvider.GetRequiredService<IOptions<MyConnectionStrings>>();
+                var logger = serviceProvider.GetRequiredService<LogBufferService>();
+                var mySettings = serviceProvider.GetRequiredService<IOptions<MySettings>>().Value;
+                string queueName = mySettings.QueueHubspotUpdate;
+                return new QueueService<EmailRequest>(queueName, myConnectionStrings, logger);
+            });
+
+            // Hubspot Update Queue Service
+            services.AddSingleton(serviceProvider =>
+            {
+                var myConnectionStrings = serviceProvider.GetRequiredService<IOptions<MyConnectionStrings>>();
+                var logger = serviceProvider.GetRequiredService<LogBufferService>();
+                var mySettings = serviceProvider.GetRequiredService<IOptions<MySettings>>().Value;
+                string queueName = mySettings.QueueEmails;
+                return new QueueService<HubspotUpdateQueueMessage>(queueName, myConnectionStrings, logger);
+            });
+
+            services.AddHostedService<BackgroundService_Queue_LinkScrape>();
             services.AddHostedService<CacheInitializationService>();
             services.AddHostedService<LoggerBackgroundService>();
             services.AddHostedService<MetricsBackgroundService>();

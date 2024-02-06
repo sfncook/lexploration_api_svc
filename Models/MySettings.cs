@@ -28,4 +28,8 @@ public class MySettings
     // Metrics
     public bool WriteMetricsCosmos { get; set; }
     public int MetricsBufferPollRateMs { get; set; }
+
+    // Hubspot
+    public string QueueHubspotUpdate { get; set; }
+    public int HubspotUpdateQueuePollRateMs { get; set; } = 10000;
 }

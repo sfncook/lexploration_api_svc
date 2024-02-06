@@ -2,79 +2,61 @@ using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using SalesBotApi.Models;
 using System;
 using System.Text;
 using System.Threading.Tasks;
 
-public class QueueService
+public class QueueService<MsgT>
 {
-    private readonly QueueClient scrapeLinksQueueClient;
-    private readonly QueueClient sendEmailQueueClient;
+    private readonly QueueClient queueClient;
     private readonly LogBufferService logger;
 
     public QueueService(
-        IOptions<MySettings> _mySettings,
+        string queueName,
         IOptions<MyConnectionStrings> _myConnectionStrings,
         LogBufferService logger
     )
     {
-        MySettings mySettings = _mySettings.Value;
         MyConnectionStrings myConnectionStrings = _myConnectionStrings.Value;
         this.logger = logger;
 
-        scrapeLinksQueueClient = new QueueClient(
+        queueClient = new QueueClient(
             myConnectionStrings.QueueConnectionStr,
-            mySettings.QueueLinks
+            queueName
         );
-        scrapeLinksQueueClient.CreateIfNotExists();
-
-        sendEmailQueueClient = new QueueClient(
-            myConnectionStrings.QueueConnectionStr,
-            mySettings.QueueEmails
-        );
-        sendEmailQueueClient.CreateIfNotExists();
+        queueClient.CreateIfNotExists();
     }
 
-    public async Task EnqueueScrapLinksMessageAsync(string message)
+    public async Task<(QueueMessage, MsgT)?> GetMessageAsync()
     {
-        logger.Info(message);
-        if (string.IsNullOrEmpty(message))
-            throw new ArgumentNullException(nameof(message));
-
-        var bytes = Encoding.UTF8.GetBytes(message);
-        await scrapeLinksQueueClient.SendMessageAsync(Convert.ToBase64String(bytes));
-    }
-
-    public async Task<QueueMessage> GetScrapLinksMessageAsync()
-    {
-        QueueMessage[] retrievedMessage = await scrapeLinksQueueClient.ReceiveMessagesAsync(maxMessages: 1);
-        if (retrievedMessage.Length > 0)
+        QueueMessage[] retrievedMessages = await queueClient.ReceiveMessagesAsync(maxMessages: 1);
+        if (retrievedMessages.Length > 0)
         {
-            var message = retrievedMessage[0];
-            return message;
+            var message = retrievedMessages[0];
+            var base64EncodedBytes = Convert.FromBase64String(message.MessageText);
+            var decodedMessage = Encoding.UTF8.GetString(base64EncodedBytes);
+            MsgT msgObj = JsonConvert.DeserializeObject<MsgT>(decodedMessage);
+            return (message, msgObj);
         }
 
         return null;
     }
 
-    public async Task DeleteScrapLinksMessageAsync(QueueMessage message)
+    public async Task DeleteMessageAsync(QueueMessage message)
     {
-        await scrapeLinksQueueClient.DeleteMessageAsync(message.MessageId, message.PopReceipt);
+        await queueClient.DeleteMessageAsync(message.MessageId, message.PopReceipt);
     }
 
-    public async Task EnqueueSendEmailMessageAsync(EmailRequest emailRequest)
+
+    public async Task EnqueueMessageAsync(MsgT msgObj)
     {
-        string message = JsonConvert.SerializeObject(emailRequest);
-        logger.Info(message);
+        string message = JsonConvert.SerializeObject(msgObj);
         if (string.IsNullOrEmpty(message))
             throw new ArgumentNullException(nameof(message));
 
         var bytes = Encoding.UTF8.GetBytes(message);
-        await sendEmailQueueClient.SendMessageAsync(Convert.ToBase64String(bytes));
+        await queueClient.SendMessageAsync(Convert.ToBase64String(bytes));
     }
+
 }
 
-// Usage
-//var queueService = new QueueService("YourConnectionString", "YourQueueName");
-//await queueService.EnqueueMessageAsync("YourMessage");

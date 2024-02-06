@@ -36,7 +36,10 @@
     "LogLevel": "Debug",
 
     "WriteMetricsCosmos": false,
-    "MetricsBufferPollRateMs": 1000
+    "MetricsBufferPollRateMs": 1000,
+
+    "QueueHubspotUpdate": "hubspot-update-dev",
+    "HubspotUpdateQueuePollRateMs": 10000
   },
   "ConnectionStrings": {
     "CosmosPrimaryAuthKey": "r5...g==",

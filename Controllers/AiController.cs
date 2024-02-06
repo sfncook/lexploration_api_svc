@@ -8,6 +8,7 @@ using static OpenAiHttpRequestService;
 using static AzureSpeechService;
 using System.Diagnostics;
 using Microsoft.Extensions.Options;
+using static HubspotService;
 
 namespace SalesBotApi.Controllers
 {
@@ -21,7 +22,7 @@ namespace SalesBotApi.Controllers
         private readonly Container messagesContainer;
         private readonly AzureSpeechService azureSpeechService;
         private readonly EmailService emailService;
-        private readonly HubspotService hubspotService;
+        private readonly QueueService<HubspotUpdateQueueMessage> queueService;
         private readonly LogBufferService logger;
         private readonly MetricsBufferService metrics;
 
@@ -33,9 +34,9 @@ namespace SalesBotApi.Controllers
             AzureSpeechService azureSpeechService,
             EmailService emailService,
             HubspotService hubspotService,
-            IOptions<MyConnectionStrings> myConnectionStrings,
             LogBufferService logger,
-            MetricsBufferService metricsBufferService
+            MetricsBufferService metricsBufferService,
+            QueueService<HubspotUpdateQueueMessage> queueService
         )
         {
             openAiHttpRequestService = _openAiHttpRequestService;
@@ -44,9 +45,9 @@ namespace SalesBotApi.Controllers
             messagesContainer = cosmosDbService.MessagesContainer;
             this.azureSpeechService = azureSpeechService;
             this.emailService = emailService;
-            this.hubspotService = hubspotService;
             this.logger = logger;
             this.metrics = metricsBufferService;
+            this.queueService = queueService;
         }
 
         // PUT: api/ai/submit_user_question
@@ -202,7 +203,16 @@ namespace SalesBotApi.Controllers
                 assistantResponse.user_wants_to_schedule_call_with_sales_rep ||
                 assistantResponse.user_wants_to_be_contacted
             ) {
-                await hubspotService.UpdateContactObj(company, assistantResponse, convo);
+                HubspotUpdateQueueMessage msg = new HubspotUpdateQueueMessage{
+                    company_id = company.company_id,
+                    convo_id = convo.id,
+                    user_first_name = assistantResponse.user_first_name,
+                    user_last_name = assistantResponse.user_last_name,
+                    user_email = assistantResponse.user_email,
+                    user_phone_number = assistantResponse.user_phone_number,
+                    user_company_name = assistantResponse.user_company_name
+                };
+                await queueService.EnqueueMessageAsync(msg);
             }
         }
 

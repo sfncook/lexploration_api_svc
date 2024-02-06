@@ -4,7 +4,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using SalesBotApi.Models;
-using static OpenAiHttpRequestService;
 
 public class HubspotService
 {
@@ -49,18 +48,22 @@ public class HubspotService
     }
 
     public async Task UpdateContactObj(
-        Company company, 
-        AssistantResponse assistantResponse,
-        Conversation convo
+        HubspotUpdateQueueMessage msg
     ) {
         Console.WriteLine("HubspotService.UpdateContactObj");
+
+        var companyTask = sharedQueriesService.GetCompanyById(msg.company_id);
+        var convoTask1 = sharedQueriesService.GetConversationById(msg.convo_id);
+        await Task.WhenAll(companyTask, convoTask1);
+        Company company = await companyTask;
+        Conversation convo = await convoTask1;
 
         int hubspot_id = convo.hubspot_id;
         HubspotContact hubspotContact =  null;
 
         // First check if we need to get the hubspot contact and update our db with the hubspot contact ID as needed
         if(hubspot_id==0) {
-            var emailTask = GetHubspotContact_By_Email(company, assistantResponse.user_email);
+            var emailTask = GetHubspotContact_By_Email(company, msg.user_email);
             var convoTask = GetHubspotContact_By_ConvoId(company, convo);
             Task.WaitAll(emailTask, convoTask);
             HubspotContact contactEmail = await emailTask;
@@ -85,9 +88,9 @@ public class HubspotService
 
         // If we don't have a valid hubspotContact then create a new contact else update the preexisting contact in hubspot
         if(hubspotContact==null) {
-            hubspotContact = await CreateNewHubspotContact(company, assistantResponse, convo);
+            hubspotContact = await CreateNewHubspotContact(company, convo, msg.user_email, msg.user_phone_number, msg.user_last_name, msg.user_first_name);
         } else {
-            hubspotContact = await UpdateHubspotContact(company, assistantResponse, convo, hubspotContact);
+            hubspotContact = await UpdateHubspotContact(company, convo, hubspotContact, msg.user_email, msg.user_phone_number, msg.user_last_name, msg.user_first_name);
         }
 
         // This is necessary if we created a new contact and it's just redundant double-checking otherwise.
@@ -98,18 +101,21 @@ public class HubspotService
     }
 
     private async Task<HubspotContact> CreateNewHubspotContact(
-        Company company, 
-        AssistantResponse assistantResponse,
-        Conversation convo
+        Company company,
+        Conversation convo,
+        string user_email,
+        string user_phone_number,
+        string user_last_name,
+        string user_first_name
     ) {
         HubspotUpdateRequestBody requestBody = new HubspotUpdateRequestBody
         {
             properties = new HubspotUpdateRequestBodyProperties {
-                email = assistantResponse.user_email,
-                phone = assistantResponse.user_phone_number,
+                email = user_email,
+                phone = user_phone_number,
                 company = company.name,
-                lastname = assistantResponse.user_last_name,
-                firstname = assistantResponse.user_first_name,
+                lastname = user_last_name,
+                firstname = user_first_name,
                 kelicompanyid = company.company_id,
                 keliconvoid = convo.id
             }
@@ -121,10 +127,13 @@ public class HubspotService
         return JsonConvert.DeserializeObject<HubspotContact>(responseString);
     }
     private async Task<HubspotContact> UpdateHubspotContact(
-        Company company, 
-        AssistantResponse assistantResponse,
+        Company company,
         Conversation convo,
-        HubspotContact hubspotContact
+        HubspotContact hubspotContact,
+        string user_email,
+        string user_phone_number,
+        string user_last_name,
+        string user_first_name
     ) {
         HubspotUpdateRequestBody requestBody = new HubspotUpdateRequestBody
         {
@@ -134,17 +143,17 @@ public class HubspotService
                 keliconvoid = convo.id
             }
         };
-        if(!string.IsNullOrWhiteSpace(assistantResponse.user_email)) {
-            requestBody.properties.email = assistantResponse.user_email;
+        if(!string.IsNullOrWhiteSpace(user_email)) {
+            requestBody.properties.email = user_email;
         }
-        if(!string.IsNullOrWhiteSpace(assistantResponse.user_phone_number)) {
-            requestBody.properties.phone = assistantResponse.user_phone_number;
+        if(!string.IsNullOrWhiteSpace(user_phone_number)) {
+            requestBody.properties.phone = user_phone_number;
         }
-        if(!string.IsNullOrWhiteSpace(assistantResponse.user_last_name)) {
-            requestBody.properties.lastname = assistantResponse.user_last_name;
+        if(!string.IsNullOrWhiteSpace(user_last_name)) {
+            requestBody.properties.lastname = user_last_name;
         }
-        if(!string.IsNullOrWhiteSpace(assistantResponse.user_first_name)) {
-            requestBody.properties.firstname = assistantResponse.user_first_name;
+        if(!string.IsNullOrWhiteSpace(user_first_name)) {
+            requestBody.properties.firstname = user_first_name;
         }
         string requestBodyStr = JsonConvert.SerializeObject(requestBody);
         var response = await SendHubspotRequest(company, HttpMethod.Patch, $"https://api.hubapi.com/crm/v3/objects/contacts/{hubspotContact.id}", requestBodyStr);
@@ -297,4 +306,15 @@ public class HubspotService
         public int id { get; set; }
         public HubspotContactProperties properties { get; set; }
     }
+
+    public class HubspotUpdateQueueMessage {
+        public string company_id { get; set; }
+        public string convo_id { get; set; }
+        public string user_first_name { get; set;}
+        public string user_last_name { get; set;}
+        public string user_email { get; set;}
+        public string user_phone_number { get; set;}
+        public string user_company_name { get; set;}
+    }
+
 }
